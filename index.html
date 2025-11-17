@@ -1,5 +1,89 @@
-// 🔥 PEGA AQUÍ TU URL FINAL DE APPS SCRIPT WEB APP
-const API_URL = "https://script.google.com/macros/s/AKfycbvc4orIsHvGgTSPLNjDyPchG_zFjodVOyq7zWlELnqh9DS1D5eR59548WH6eIhof82Ng/exec";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro de Ventas</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 450px;
+            margin: auto;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+        }
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Registro de Venta</h2>
+
+    <label>Vendedor</label>
+    <input type="text" id="vendedor" />
+
+    <label>Ruta</label>
+    <input type="text" id="ruta" />
+
+    <label>Cliente</label>
+    <input type="text" id="cliente" />
+
+    <label>Monto</label>
+    <input type="number" id="monto" />
+
+    <label>Tipo de venta</label>
+    <select id="tipoVenta">
+        <option value="Contado">Contado</option>
+        <option value="Crédito">Crédito</option>
+    </select>
+
+    <label>Comentario</label>
+    <input type="text" id="comentario" />
+
+    <label>Fecha</label>
+    <input type="date" id="fecha" />
+
+    <label>Presupuesto</label>
+    <input type="number" id="presupuesto" />
+
+    <button onclick="guardarVenta()">Guardar Venta</button>
+
+    <div id="status"></div>
+</div>
+
+<script>
+// ⛔ PEGA AQUÍ TU URL FINAL DE APP SCRIPT WEB APP
+const API_URL = "https://script.google.com/macros/s/AKfycbyc4orIvsHvGgTSPLNjDYpChG_zFjodVOyq7zWlELnqh9Ds1D5eR59548WH6eIhof82Ng/exec";
 
 async function guardarVenta() {
     const data = {
@@ -16,18 +100,21 @@ async function guardarVenta() {
     document.getElementById("status").innerHTML = "Guardando...";
 
     try {
-        const response = await fetch(API_URL, {
+        await fetch(API_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
         });
 
-        document.getElementById("status").innerHTML = "Venta registrada correctamente";
+        document.getElementById("status").innerHTML = "✔ Venta registrada correctamente";
+
     } catch (error) {
         document.getElementById("status").innerHTML = "❌ Error al guardar";
         console.error(error);
     }
 }
+</script>
+
+</body>
+</html>
