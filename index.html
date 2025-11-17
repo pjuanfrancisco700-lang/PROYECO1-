@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ventas - Vendedor</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+      max-width: 450px;
+      margin: auto;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      background: #006eff;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      margin-top: 20px;
+      cursor: pointer;jj
+    }
+
+    button:hover {
+      background: #0050c8;
+    }
+
+    #status {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Registro de Ventas</h2>
+
+  <div class="container">
+    <label>Vendedor</label>
+    <input type="text" id="vendedor" placeholder="Nombre vendedor" />
+
+    <label>Ruta</label>
+    <input type="text" id="ruta" placeholder="Ejemplo: 17029" />
+
+    <label>Cliente</label>
+    <input type="text" id="cliente" placeholder="Nombre del cliente" />
+
+    <label>Monto</label>
+    <input type="number" id="monto" placeholder="0.00" />
+
+    <label>Tipo de venta</label>
+    <select id="tipoVenta">
+      <option value="">Seleccione...</option>
+      <option value="Contado">Contado</option>
+      <option value="Crédito">Crédito</option>
+      <option value="Preventa">Preventa</option>
+    </select>
+
+    <label>Comentario</label>
+    <textarea id="comentario" placeholder="Opcional"></textarea>
+
+    <label>Fecha</label>
+    <input type="date" id="fecha" />
+
+    <label>Presupuesto</label>
+    <input type="number" id="presupuesto" placeholder="Presupuesto diario" />
+
+    <button onclick="guardarVenta()">Guardar Venta</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // ⚠️ PEGA AQUÍ TU URL FINAL DE APPS SCRIPT WEB APP
+    const API_URL = "https://script.google.com/macros/s/AKfycbzwfsZaZWmOeN-bHV1CesRfa4M5rZw0qG0fcBn4sc4W8TgYDCxRK9HItK-ibRn1HOJjsA/exec";
+
+    async function guardarVenta() {
+      const data = {
+        vendedor: document.getElementById("vendedor").value,
+        ruta: document.getElementById("ruta").value,
+        cliente: document.getElementById("cliente").value,
+        monto: document.getElementById("monto").value,
+        tipoVenta: document.getElementById("tipoVenta").value,
+        comentario: document.getElementById("comentario").value,
+        fecha: document.getElementById("fecha").value,
+        presupuesto: document.getElementById("presupuesto").value
+      };
+
+      document.getElementById("status").innerHTML = "Guardando...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        });
+
+        const result = await response.json();
+
+        if (result.status === "ok") {
+          document.getElementById("status").innerHTML = "✔ Venta registrada correctamente";
+        } else {
+          document.getElementById("status").innerHTML = "❌ Error: " + result.message;
+        }
+
+      } catch (e) {
+        document.getElementById("status").innerHTML = "⚠ No se pudo conectar con el servidor";
+      }
+    }
+  </script>
+
+</body>
+</html>
