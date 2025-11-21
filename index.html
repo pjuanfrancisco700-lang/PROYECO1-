@@ -377,6 +377,16 @@ let level = 1;
 let currentPlayer = "";
 let lastFrameTime = 0;
 
+// flags para mantener presionado
+let leftHeld = false;
+let rightHeld = false;
+
+function clampShip() {
+  const half = ship.w / 2;
+  if (ship.x < half) ship.x = half;
+  if (ship.x > canvas.width - half) ship.x = canvas.width - half;
+}
+
 function resizeCanvas() {
   const width = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
   const height = Math.min(window.innerHeight * 0.5, 440);
@@ -384,6 +394,7 @@ function resizeCanvas() {
   canvas.height = height;
   ship.x = width / 2;
   ship.y = height - 40;
+  clampShip();
 }
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
@@ -445,6 +456,8 @@ function endGame() {
   if (gameOver) return;
   running = false;
   gameOver = true;
+  leftHeld = false;
+  rightHeld = false;
   document.getElementById("gameStateText").textContent = "Terminado";
   const text = `Te golpeó un círculo 😵\nPuntaje: ${score}\nNivel: ${level}`;
   document.getElementById("gameOverText").textContent = text;
@@ -464,6 +477,16 @@ function update(dt, now) {
     level = newLevel;
     document.getElementById("levelLabel").textContent = level;
   }
+
+  // movimiento continuo por botón presionado
+  const baseSpeed = 5; // cuanto más grande, más rápido
+  if (leftHeld) {
+    ship.x -= baseSpeed * dt;
+  }
+  if (rightHeld) {
+    ship.x += baseSpeed * dt;
+  }
+  clampShip();
 
   if (now - lastSpawnTime > spawnIntervalMs()) {
     lastSpawnTime = now;
@@ -621,12 +644,42 @@ function loop(timestamp) {
 }
 
 /* ====================== CONTROLES ====================== */
-document.getElementById("btnLeft").addEventListener("click", () => {
+const btnLeft = document.getElementById("btnLeft");
+const btnRight = document.getElementById("btnRight");
+
+function setupHold(btn, dir) {
+  btn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (!running || gameOver) return;
+    if (dir === "left") leftHeld = true;
+    else rightHeld = true;
+  });
+  btn.addEventListener("pointerup", () => {
+    if (dir === "left") leftHeld = false;
+    else rightHeld = false;
+  });
+  btn.addEventListener("pointercancel", () => {
+    if (dir === "left") leftHeld = false;
+    else rightHeld = false;
+  });
+  btn.addEventListener("pointerleave", () => {
+    if (dir === "left") leftHeld = false;
+    else rightHeld = false;
+  });
+}
+setupHold(btnLeft, "left");
+setupHold(btnRight, "right");
+
+// toque rápido: paso corto
+btnLeft.addEventListener("click", () => {
   ship.x -= 20;
+  clampShip();
 });
-document.getElementById("btnRight").addEventListener("click", () => {
+btnRight.addEventListener("click", () => {
   ship.x += 20;
+  clampShip();
 });
+
 document.getElementById("btnShoot").addEventListener("click", shoot);
 
 let dragging = false;
@@ -640,6 +693,7 @@ canvas.addEventListener("pointermove", e => {
   if (!dragging) return;
   const rect = canvas.getBoundingClientRect();
   ship.x = e.clientX - rect.left;
+  clampShip();
 });
 
 canvas.addEventListener("click", e => {
@@ -668,7 +722,7 @@ document.getElementById("btnUseName").addEventListener("click", () => {
 
 const rankingOverlay = document.getElementById("rankingOverlay");
 document.getElementById("btnShowRanking").addEventListener("click", () => {
-  // Opción C: solo cuando no hay partida en curso
+  // Solo cuando no hay partida en curso
   if (running) {
     alert("Termina la partida antes de ver el ranking.");
     return;
