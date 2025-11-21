@@ -27,6 +27,7 @@
           #d7e3ff 23px
         );
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
     }
 
     input, button, select {
@@ -38,7 +39,7 @@
       width: 100%;
       max-width: 480px;
       margin: 0 auto;
-      padding: 12px;
+      padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -377,9 +378,14 @@ let level = 1;
 let currentPlayer = "";
 let lastFrameTime = 0;
 
-// flags para mantener presionado
+// movimiento continuo
 let leftHeld = false;
 let rightHeld = false;
+
+// disparo automático
+let shootHeld = false;
+let lastShootTime = 0;
+const SHOOT_INTERVAL_MS = 200;
 
 function clampShip() {
   const half = ship.w / 2;
@@ -422,12 +428,7 @@ function spawnCircle() {
   });
 }
 
-function shoot() {
-  if (gameOver) {
-    resetGame();
-    return;
-  }
-  if (!running) return;
+function spawnBullet() {
   bullets.push({
     x: ship.x,
     y: ship.y - ship.h / 2,
@@ -443,6 +444,9 @@ function resetGame() {
   level = 1;
   running = true;
   gameOver = false;
+  leftHeld = false;
+  rightHeld = false;
+  shootHeld = false;
   lastSpawnTime = performance.now();
   lastFrameTime = performance.now();
   document.getElementById("score").textContent = score;
@@ -458,6 +462,8 @@ function endGame() {
   gameOver = true;
   leftHeld = false;
   rightHeld = false;
+  shootHeld = false;
+
   document.getElementById("gameStateText").textContent = "Terminado";
   const text = `Te golpeó un círculo 😵\nPuntaje: ${score}\nNivel: ${level}`;
   document.getElementById("gameOverText").textContent = text;
@@ -478,15 +484,23 @@ function update(dt, now) {
     document.getElementById("levelLabel").textContent = level;
   }
 
-  // movimiento continuo por botón presionado
-  const baseSpeed = 5; // cuanto más grande, más rápido
+  // movimiento continuo
+  const moveSpeed = 5;
   if (leftHeld) {
-    ship.x -= baseSpeed * dt;
+    ship.x -= moveSpeed * dt;
   }
   if (rightHeld) {
-    ship.x += baseSpeed * dt;
+    ship.x += moveSpeed * dt;
   }
   clampShip();
+
+  // disparo continuo
+  if (shootHeld && running && !gameOver) {
+    if (now - lastShootTime > SHOOT_INTERVAL_MS) {
+      spawnBullet();
+      lastShootTime = now;
+    }
+  }
 
   if (now - lastSpawnTime > spawnIntervalMs()) {
     lastSpawnTime = now;
@@ -646,6 +660,7 @@ function loop(timestamp) {
 /* ====================== CONTROLES ====================== */
 const btnLeft = document.getElementById("btnLeft");
 const btnRight = document.getElementById("btnRight");
+const btnShoot = document.getElementById("btnShoot");
 
 function setupHold(btn, dir) {
   btn.addEventListener("pointerdown", e => {
@@ -680,7 +695,26 @@ btnRight.addEventListener("click", () => {
   clampShip();
 });
 
-document.getElementById("btnShoot").addEventListener("click", shoot);
+// disparo automático con hold
+btnShoot.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  if (gameOver) {
+    resetGame();
+  }
+  if (!running) return;
+  shootHeld = true;
+  lastShootTime = performance.now();
+  spawnBullet();
+});
+btnShoot.addEventListener("pointerup", () => {
+  shootHeld = false;
+});
+btnShoot.addEventListener("pointercancel", () => {
+  shootHeld = false;
+});
+btnShoot.addEventListener("pointerleave", () => {
+  shootHeld = false;
+});
 
 let dragging = false;
 canvas.addEventListener("pointerdown", e => {
@@ -700,7 +734,12 @@ canvas.addEventListener("click", e => {
   const rect = canvas.getBoundingClientRect();
   const y = e.clientY - rect.top;
   if (y > rect.height * 0.6) {
-    shoot();
+    if (gameOver) {
+      resetGame();
+      return;
+    }
+    if (!running) return;
+    spawnBullet();
   }
 });
 
