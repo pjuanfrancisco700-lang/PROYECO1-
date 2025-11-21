@@ -96,10 +96,43 @@
         <div class="card"><div class="card-head"><h3>Ventas sin Congelador</h3><span class="pill"><span id="kpi-vsc-clientes">0</span> clientes</span></div><div class="big" id="kpi-vsc">Q0.00</div><div class="muted">Avance vs meta: <strong id="kpi-vsc-avance">0%</strong></div><div class="muted">Proyección cierre: <strong id="kpi-vsc-proy">Q0.00</strong></div></div>
       </section>
 
+      <!-- VENTAS unificadas -->
       <section id="ventas" role="tabpanel">
-        <div class="card"><div class="card-head"><h3>Ventas con congelador</h3></div><div class="row"><div><label>Cliente</label><select id="sel-vcc"></select></div><div><label>Monto (Q)</label><input id="monto-vcc" type="number" inputmode="decimal" placeholder="0.00"/></div></div><div class="toolbar"><button class="btn primary" id="add-vcc">Agregar venta</button></div></div>
-        <div class="card"><div class="card-head"><h3>Ventas sin congelador</h3></div><div class="row"><div><label>Cliente</label><select id="sel-vsc"></select></div><div><label>Monto (Q)</label><input id="monto-vsc" type="number" inputmode="decimal" placeholder="0.00"/></div></div><div class="toolbar"><button class="btn primary" id="add-vsc">Agregar venta</button></div></div>
-        <div class="card"><div class="card-head"><h3>Historial de ventas</h3></div><table id="tabla-ventas"><thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Monto</th><th>Acciones</th></tr></thead><tbody></tbody></table></div>
+        <div class="card">
+          <div class="card-head"><h3>Registrar venta</h3></div>
+          <div class="row">
+            <div>
+              <label>Tipo de cliente</label>
+              <select id="venta-tipo">
+                <option value="congelador">Con congelador</option>
+                <option value="sin">Sin congelador</option>
+              </select>
+            </div>
+            <div>
+              <label>Cliente</label>
+              <select id="venta-cliente"></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div>
+              <label>Monto (Q)</label>
+              <input id="venta-monto" type="number" inputmode="decimal" placeholder="0.00"/>
+            </div>
+          </div>
+          <div class="toolbar">
+            <button class="btn primary" id="add-venta">Agregar venta</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Historial de ventas</h3></div>
+          <table id="tabla-ventas">
+            <thead>
+              <tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Monto</th><th>Acciones</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
 
       <section id="clientes" role="tabpanel">
@@ -152,9 +185,47 @@
     function initConfigSelectors(){ const m=$('#cfg-mes'),a=$('#cfg-anio'); const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; if(m) m.innerHTML=meses.map((n,i)=>`<option value="${i+1}">${n}</option>`).join(''); if(a) a.innerHTML=Array.from({length:6},(_,k)=>cfg.anio-1+k).map(y=>`<option value="${y}">${y}</option>`).join(''); if(m) m.value=cfg.mes; if(a) a.value=cfg.anio; if($('#cfg-ruta')) $('#cfg-ruta').value=cfg.ruta; if($('#cfg-dias')) $('#cfg-dias').value=cfg.dias; if($('#cfg-presupuesto')) $('#cfg-presupuesto').value=cfg.presupuesto; if($('#cfg-vsc')) $('#cfg-vsc').value=cfg.vscMeta; if($('#cfg-sync')) $('#cfg-sync').value=cfg.syncUrl||''; if($('#cfg-token')) $('#cfg-token').value=cfg.token||'';
       if($('#btn-guardar')) $('#btn-guardar').onclick=()=>{ cfg.mes=+m.value; cfg.anio=+a.value; cfg.ruta=$('#cfg-ruta').value.trim()||cfg.ruta; cfg.dias=Math.max(1,+$('#cfg-dias').value||26); cfg.presupuesto=Math.max(0,+$('#cfg-presupuesto').value||0); const vscEl=$('#cfg-vsc'); cfg.vscMeta=vscEl?Math.max(0,+vscEl.value||0):cfg.vscMeta; save(KEY_CFG,cfg); renderAll(); alert('Configuración guardada'); };
       if($('#btn-reset')) $('#btn-reset').onclick=()=>{ if(confirm('Esto borrará todas las ventas del mes actual. ¿Continuar?')){ sales=sales.filter(v=>!(v.ruta===cfg.ruta&&v.anio===cfg.anio&&v.mes===cfg.mes)); save(KEY_SALES,sales); renderAll(); alert('Mes reiniciado.'); } }; }
-    function buildClientSelects(){ const route=db[cfg.ruta]||{congelador:[],sin:[]}; if($('#sel-vcc')) $('#sel-vcc').innerHTML=route.congelador.map(n=>`<option>${n}</option>`).join(''); if($('#sel-vsc')) $('#sel-vsc').innerHTML=route.sin.map(n=>`<option>${n}</option>`).join(''); }
-    if($('#add-vcc')) $('#add-vcc').onclick=()=>addVenta('congelador',$('#sel-vcc').value,+$('#monto-vcc').value||0); if($('#add-vsc')) $('#add-vsc').onclick=()=>addVenta('sin',$('#sel-vsc').value,+$('#monto-vsc').value||0);
-    async function addVenta(tipo,cliente,monto){ if(!cliente){alert('Selecciona un cliente.');return} if(!(monto>0)){alert('Ingresa un monto válido.');return} const v={id:uid(),fecha:todayStr(),tipo,cliente,monto:+monto,ruta:cfg.ruta,mes:cfg.mes,anio:cfg.anio}; sales.push(v); save(KEY_SALES,sales); if($('#monto-vcc')) $('#monto-vcc').value=''; if($('#monto-vsc')) $('#monto-vsc').value=''; renderAll(); if(cfg.syncUrl){ try{ await fetch(cfg.syncUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:v.id,fecha:v.fecha,tipo:v.tipo,cliente:v.cliente,monto:v.monto,ruta:v.ruta,mes:v.mes,anio:v.anio,token:cfg.token||''})}); }catch(e){} } }
+
+    // Construye el select de clientes según el tipo elegido
+    function buildClientSelects(){
+      const route=db[cfg.ruta]||{congelador:[],sin:[]};
+      const tipoEl=$('#venta-tipo');
+      const cliEl=$('#venta-cliente');
+      if(!tipoEl || !cliEl) return;
+      const tipo=tipoEl.value || 'congelador';
+      const list=tipo==='congelador'?route.congelador:route.sin;
+      cliEl.innerHTML=list.map(n=>`<option>${n}</option>`).join('');
+    }
+
+    // Cambio de tipo actualiza el listado de clientes
+    if($('#venta-tipo')) $('#venta-tipo').addEventListener('change', buildClientSelects);
+
+    // Botón único para agregar venta
+    if($('#add-venta')) $('#add-venta').onclick=()=>addVenta(
+      $('#venta-tipo').value,
+      $('#venta-cliente').value,
+      +$('#venta-monto').value||0
+    );
+
+    async function addVenta(tipo,cliente,monto){
+      if(!cliente){alert('Selecciona un cliente.');return}
+      if(!(monto>0)){alert('Ingresa un monto válido.');return}
+      const v={id:uid(),fecha:todayStr(),tipo,cliente,monto:+monto,ruta:cfg.ruta,mes:cfg.mes,anio:cfg.anio};
+      sales.push(v);
+      save(KEY_SALES,sales);
+      if($('#venta-monto')) $('#venta-monto').value='';
+      renderAll();
+      if(cfg.syncUrl){
+        try{
+          await fetch(cfg.syncUrl,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:v.id,fecha:v.fecha,tipo:v.tipo,cliente:v.cliente,monto:v.monto,ruta:v.ruta,mes:v.mes,anio:v.anio,token:cfg.token||''})
+          });
+        }catch(e){}
+      }
+    }
+
     function renderVentasTable(){ const tbody=$('#tabla-ventas tbody'); if(!tbody) return; const list=currentSales(); tbody.innerHTML=list.map(v=>`<tr><td>${v.fecha}</td><td>${v.tipo==='congelador'?'Con congelador':'Sin congelador'}</td><td>${escapeHtml(v.cliente)}</td><td>${Q(v.monto)}</td><td><button class='btn' data-edit='${v.id}'>Editar</button> <button class='btn danger' data-del='${v.id}'>Borrar</button></td></tr>`).join(''); tbody.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.dataset.edit)); tbody.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>delVenta(b.dataset.del)); }
     function openEdit(id){ const v=sales.find(x=>x.id===id); if(!v) return; const m=document.getElementById('modal-edit'); m.classList.add('active'); document.getElementById('edit-monto').value=v.monto; document.getElementById('edit-fecha').value=v.fecha; document.getElementById('edit-save').onclick=()=>{ const nuevo=+document.getElementById('edit-monto').value||0; if(!(nuevo>0)) return alert('Monto inválido'); const f=document.getElementById('edit-fecha').value||todayStr(); v.monto=nuevo; v.fecha=f; save(KEY_SALES,sales); m.classList.remove('active'); renderAll(); }; document.getElementById('edit-cancel').onclick=()=> m.classList.remove('active'); }
     function delVenta(id){ if(!confirm('¿Eliminar esta venta?')) return; sales=sales.filter(v=>v.id!==id); save(KEY_SALES,sales); renderAll(); }
