@@ -1,1095 +1,171 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Termómetro de Ventas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Sombrela 360 — Control de Ventas</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sombrela 360">
+  <meta name="theme-color" content="#F2F2F7">
+  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/app-167.png?v=1">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/app-152.png?v=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/app-32.png?v=1">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/app-16.png?v=1">
   <style>
-    :root {
-      --bg: #0f172a;
-      --bg-soft: #111827;
-      --card: #020617;
-      --accent: #38bdf8;
-      --accent-soft: rgba(56, 189, 248, 0.12);
-      --text: #e5e7eb;
-      --text-soft: #9ca3af;
-      --danger: #f97373;
-      --border: #1f2937;
-      --radius-xl: 18px;
-      --radius-2xl: 24px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .app-shell {
-      width: 100%;
-      max-width: 480px;
-      background: rgba(15, 23, 42, 0.96);
-      border-radius: 32px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow:
-        0 32px 80px rgba(0, 0, 0, 0.75),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-      padding: 14px 14px 10px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      backdrop-filter: blur(24px);
-    }
-
-    .status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--text-soft);
-      opacity: 0.9;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 2px 2px;
-    }
-
-    .app-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .app-icon {
-      width: 26px;
-      height: 26px;
-      border-radius: 9px;
-      background: conic-gradient(
-        from 220deg,
-        #38bdf8,
-        #22c55e,
-        #eab308,
-        #f97316,
-        #38bdf8
-      );
-      padding: 2px;
-      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.6);
-    }
-
-    .app-icon-inner {
-      width: 100%;
-      height: 100%;
-      border-radius: 7px;
-      background: radial-gradient(circle at 20% 0, #f97316 0, #0f172a 45%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-      color: #e5e7eb;
-    }
-
-    .app-name-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .app-name {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-    }
-
-    .app-subtitle {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .pill {
-      padding: 3px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: rgba(15, 23, 42, 0.9);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .pill-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: #22c55e;
-    }
-
-    .tab-bar {
-      margin-top: 4px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 999px;
-      padding: 3px;
-      border: 1px solid rgba(30, 64, 175, 0.4);
-    }
-
-    .tab-btn {
-      border: none;
-      outline: none;
-      background: transparent;
-      color: var(--text-soft);
-      font-size: 11px;
-      padding: 6px 4px;
-      border-radius: 999px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      cursor: pointer;
-      transition: 0.18s all ease;
-      font-weight: 500;
-    }
-
-    .tab-btn span.icon {
-      font-size: 15px;
-    }
-
-    .tab-btn.active {
-      background: radial-gradient(circle at top, #1d4ed8 0, #0f172a 55%);
-      color: #f9fafb;
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.5),
-        0 10px 18px rgba(15, 23, 42, 0.9);
-    }
-
-    .tab-btn .label {
-      font-size: 10px;
-    }
-
-    .content {
-      margin-top: 4px;
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .card {
-      background: radial-gradient(circle at top, #020617 0, #020617 60%);
-      border-radius: var(--radius-2xl);
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      padding: 12px 12px 10px;
-      box-shadow:
-        0 18px 30px rgba(0, 0, 0, 0.85),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .card-title {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .card-subtitle {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .badge {
-      font-size: 10px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--accent);
-    }
-
-    .config-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .field label {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .field input {
-      background: rgba(15, 23, 42, 0.9);
-      border-radius: 12px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      padding: 7px 9px;
-      font-size: 12px;
-      color: var(--text);
-      outline: none;
-      width: 100%;
-    }
-
-    .field input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
-    }
-
-    .hint {
-      font-size: 10px;
-      color: var(--text-soft);
-      margin-top: 6px;
-    }
-
-    .config-footer {
-      margin-top: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ghost-btn {
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-      padding: 6px 10px;
-      font-size: 11px;
-      color: var(--text-soft);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-    }
-
-    .ghost-btn span.icon {
-      font-size: 13px;
-    }
-
-    .primary-pill-btn {
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #020617;
-      padding: 7px 14px;
-      font-size: 11px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow:
-        0 10px 20px rgba(34, 211, 238, 0.35),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-      white-space: nowrap;
-    }
-
-    .primary-pill-btn span.icon {
-      font-size: 14px;
-    }
-
-    /* KPIs */
-    .kpi-grid-main {
-      display: grid;
-      grid-template-columns: 1.25fr 1.25fr;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .kpi-main {
-      border-radius: 18px;
-      padding: 10px 10px 9px;
-      background: radial-gradient(circle at top, #0ea5e9 0, #1e293b 45%, #020617 90%);
-      border: 1px solid rgba(56, 189, 248, 0.9);
-      box-shadow:
-        0 20px 40px rgba(8, 47, 73, 0.85),
-        0 0 0 1px rgba(15, 23, 42, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .kpi-main.faltante {
-      background: radial-gradient(circle at top, #f97316 0, #1e293b 45%, #020617 90%);
-      border-color: rgba(248, 171, 85, 0.95);
-      box-shadow:
-        0 20px 40px rgba(124, 45, 18, 0.85),
-        0 0 0 1px rgba(15, 23, 42, 1);
-    }
-
-    .kpi-main::before {
-      content: "";
-      position: absolute;
-      inset: -20%;
-      background: radial-gradient(circle at -10% -10%, rgba(248, 250, 252, 0.18), transparent 55%);
-      opacity: 0.65;
-      pointer-events: none;
-    }
-
-    .kpi-label-main {
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      opacity: 0.9;
-    }
-
-    .kpi-value-main {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 4px;
-      letter-spacing: 0.02em;
-    }
-
-    .kpi-chip-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 6px;
-      font-size: 10px;
-      opacity: 0.9;
-    }
-
-    .kpi-chip {
-      padding: 3px 7px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .kpi-chip-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: #22c55e;
-    }
-
-    .kpi-grid-secondary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    .kpi-mini {
-      background: rgba(15, 23, 42, 0.9);
-      border-radius: 14px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .kpi-mini-label {
-      font-size: 9px;
-      color: var(--text-soft);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .kpi-mini-value {
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .kpi-mini-tag {
-      font-size: 9px;
-      margin-top: 1px;
-      color: var(--accent);
-    }
-
-    .kpi-footer-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 4px;
-      font-size: 10px;
-      color: var(--text-soft);
-    }
-
-    /* Ventas table */
-    .ventas-wrapper {
-      margin-top: 6px;
-      border-radius: 18px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      background: radial-gradient(circle at top, #020617 0, #020617 60%);
-      max-height: 230px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .ventas-header-row {
-      display: grid;
-      grid-template-columns: 0.8fr 1.6fr 1.1fr;
-      padding: 6px 9px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-soft);
-      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
-      background: linear-gradient(to right, #0f172a, #020617);
-    }
-
-    .ventas-body {
-      overflow-y: auto;
-    }
-
-    .ventas-row {
-      display: grid;
-      grid-template-columns: 0.8fr 1.6fr 1.1fr;
-      padding: 5px 9px;
-      align-items: center;
-      font-size: 11px;
-      border-top: 1px solid rgba(15, 23, 42, 0.9);
-    }
-
-    .ventas-row:nth-child(2n) {
-      background: rgba(15, 23, 42, 0.4);
-    }
-
-    .ventas-row span.dia-label {
-      color: var(--text-soft);
-    }
-
-    .ventas-row span.dia-label strong {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .ventas-row input {
-      width: 100%;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-      padding: 6px 8px;
-      font-size: 11px;
-      color: var(--text);
-      outline: none;
-      text-align: right;
-    }
-
-    .ventas-row input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
-    }
-
-    .ventas-footer {
-      padding: 6px 9px 7px;
-      border-top: 1px solid rgba(31, 41, 55, 0.9);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10px;
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.96);
-    }
-
-    .ventas-footer strong {
-      color: var(--text);
-    }
-
-    .tag-soft {
-      padding: 3px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      background: rgba(15, 23, 42, 0.9);
-      font-size: 10px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .tag-soft-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 999px;
-      background: var(--accent);
-    }
-
-    .tab-view {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .tab-view.active {
-      display: flex;
-    }
-
-    .empty-state {
-      font-size: 11px;
-      color: var(--text-soft);
-      padding: 6px 2px 0;
-    }
-
-    @media (max-width: 400px) {
-      .app-shell {
-        border-radius: 24px;
-        padding-inline: 10px;
-      }
-
-      .kpi-value-main {
-        font-size: 16px;
-      }
-
-      .kpi-grid-secondary {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
+    :root{--bg:#F2F2F7;--surface:#fff;--text:#0A0A0A;--muted:#6B7280;--brand:#0A84FF;--ok:#34C759;--warn:#FFCC00;--danger:#FF3B30;--border:#E5E7EB;--shadow:0 6px 20px rgba(0,0,0,.06);--radius:16px}
+    *{box-sizing:border-box} html,body{height:100%} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;background:var(--bg);color:var(--text)}
+    .app{max-width:420px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+    .topbar{position:sticky;top:0;z-index:10;background:var(--bg);backdrop-filter:saturate(180%) blur(10px);display:flex;align-items:center;justify-content:center;padding:10px 12px;border-bottom:1px solid var(--border)}
+    .tabs{display:flex;gap:14px;justify-content:space-between;padding:4px 6px}
+    .tab{appearance:none;border:none;background:transparent;padding:10px 14px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-weight:600;cursor:pointer;transition:all .18s ease}
+    .tab svg{width:24px;height:24px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .tab.active{background:var(--surface);color:var(--text);box-shadow:0 3px 10px rgba(0,0,0,.08);transform:translateY(-1px)}
+    main{padding:12px;flex:1} section{display:none} section.active{display:block}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .pill{font-size:12px;color:var(--muted);border:1px solid var(--border);background:#F7F7FB;padding:4px 10px;border-radius:999px}
+    .big{font-size:26px;font-weight:800;letter-spacing:.2px}
+    .subrow{display:flex;gap:16px;align-items:center;color:var(--muted);font-size:13px;margin-top:8px;justify-content:space-between}
+    .progress{height:12px;border-radius:999px;background:#EEE;overflow:hidden;border:1px solid var(--border);margin-top:8px}
+    .progress>div{height:100%;width:0%;transition:width .4s ease;border-radius:999px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select{width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:#FBFBFE;font-size:14px} input[type=number]{appearance:textfield}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-weight:700;font-size:14px;cursor:pointer}
+    .btn.primary{background:var(--brand);border-color:transparent;color:#fff} .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px} table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid var(--border);font-size:12px;text-align:left} th{color:var(--muted);font-weight:700}
+    .collapsible{border-top:1px dashed var(--border);margin-top:8px;padding-top:8px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal.active{display:flex} .modal-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:14px}
+    @media (max-width:480px){.app{max-width:100%} main{padding:10px} .card{padding:12px;margin-bottom:12px} .tab span{display:none} .tabs{gap:6px} .big{font-size:24px}}
+    @media (max-width:360px){.btn{padding:8px 10px;font-size:13px} .big{font-size:22px}}
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <div class="status-bar">
-      <div>Termómetro de Ventas</div>
-      <div id="status-date"></div>
-    </div>
+  <div class="app">
+    <header class="topbar">
+      <nav class="tabs" role="tablist" aria-label="Barra de menú">
+        <button class="tab active" data-tab="dashboard" aria-selected="true" title="Dashboard">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <polyline points="4 16 9 11 13 14 20 7"/>
+    <polyline points="4 20 20 20"/>
+  </svg>
+</button>
+        <button class="tab" data-tab="ventas" title="Registro de ventas">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 6h2l1 9h10l1-6H8"/>
+    <circle cx="10" cy="18" r="2"/>
+    <circle cx="17" cy="18" r="2"/>
+  </svg>
+</button>
+        <button class="tab" data-tab="clientes" title="Cliente nuevo">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <!-- Icono de cliente -->
+    <circle cx="12" cy="7" r="3.2"/>
+    <path d="M5.2 19a6.8 6.8 0 0 1 13.6 0"/>
+    <!-- Símbolo + más separado y más arriba -->
+    <line x1="20" y1="7.8" x2="20" y2="13.2"/>
+    <line x1="17.4" y1="10.5" x2="22.6" y2="10.5"/>
+  </svg>
+</button>
+        <button class="tab" data-tab="config" title="Configuración">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <!-- Nuevo símbolo de configuración (estilo sliders / ajustes) -->
+    <line x1="6" y1="5" x2="18" y2="5"/>
+    <circle cx="14" cy="5" r="2"/>
 
-    <header class="header">
-      <div class="app-title">
-        <div class="app-icon">
-          <div class="app-icon-inner">Q</div>
-        </div>
-        <div class="app-name-block">
-          <div class="app-name">Termómetro de Ventas</div>
-          <div class="app-subtitle">Control diario con IVA 12%</div>
-        </div>
-      </div>
-      <div class="header-actions">
-        <div class="pill">
-          <span class="pill-dot"></span>
-          <span id="pill-meta">Meta: Q 0.00</span>
-        </div>
-      </div>
+    <line x1="6" y1="12" x2="18" y2="12"/>
+    <circle cx="10" cy="12" r="2"/>
+
+    <line x1="6" y1="19" x2="18" y2="19"/>
+    <circle cx="16" cy="19" r="2"/>
+  </svg>
+</button>
+      </nav>
     </header>
 
-    <nav class="tab-bar">
-      <button class="tab-btn active" data-tab="config">
-        <span class="icon">⚙️</span>
-        <span class="label">Configuración</span>
-      </button>
-      <button class="tab-btn" data-tab="kpis">
-        <span class="icon">📊</span>
-        <span class="label">Operación</span>
-      </button>
-      <button class="tab-btn" data-tab="ventas">
-        <span class="icon">🧾</span>
-        <span class="label">Ventas</span>
-      </button>
-    </nav>
-
-    <main class="content">
-      <!-- CONFIGURACIÓN -->
-      <section class="tab-view active" id="tab-config">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Parámetros del mes</div>
-              <div class="card-subtitle">Todo en Quetzales, montos con IVA incluido.</div>
-            </div>
-            <div class="badge">
-              <span class="badge-dot"></span>
-              <span>Ruta 17029</span>
-            </div>
-          </div>
-
-          <div class="config-grid">
-            <div class="field">
-              <label for="meta-mensual">Meta mensual (Q, con IVA)</label>
-              <input id="meta-mensual" type="number" min="0" step="0.01" inputmode="decimal"
-                placeholder="Ej. 442232" />
-            </div>
-            <div class="field">
-              <label for="dias-habiles">Días hábiles del mes</label>
-              <input id="dias-habiles" type="number" min="1" max="31" step="1" inputmode="numeric"
-                placeholder="Ej. 27" />
-            </div>
-            <div class="field">
-              <label for="nombre-proyecto">Etiqueta / Proyecto</label>
-              <input id="nombre-proyecto" type="text" maxlength="40"
-                placeholder="Ej. Ruta 17029 - Noviembre" />
-            </div>
-            <div class="field">
-              <label for="nota-config">Nota interna</label>
-              <input id="nota-config" type="text" maxlength="60"
-                placeholder="Ej. Considerar 2.5% rechazo" />
-            </div>
-          </div>
-
-          <div class="hint">
-            • Meta y ventas se manejan siempre <strong>con IVA 12%</strong>.<br />
-            • Puedes cambiar meta o días hábiles en cualquier momento, no se borran las ventas.
-          </div>
-
-          <div class="config-footer">
-            <button class="ghost-btn" id="btn-reset">
-              <span class="icon">↩︎</span>
-              <span>Reiniciar ventas</span>
-            </button>
-            <button class="primary-pill-btn" id="btn-guardar-config">
-              <span class="icon">✔︎</span>
-              <span>Guardar configuración</span>
-            </button>
-          </div>
-        </div>
+    <main>
+      <section id="dashboard" class="active" role="tabpanel">
+        <div class="card"><div class="card-head"><h3>Presupuesto General</h3><span style="font-size:13px;color:var(--muted);font-weight:600">Ruta <span id="dash-ruta" style="color:#9CA3AF"></span></span></div><div class="big" id="kpi-presupuesto">Q0.00</div><div class="progress"><div id="progress-bar" style="width:0%"></div></div><div class="subrow" style="font-size:18px"><span>Total vendido: <strong id="kpi-vendido">Q0.00</strong></span><span>Faltante: <strong id="kpi-falta">Q0.00</strong></span></div></div>
+        <div class="card"><div class="card-head"><h3>Indicadores Generales</h3></div><div class="subrow"><div><div class="muted">Avance general</div><div class="big" id="kpi-global-avance">0.0%</div></div><div style="text-align:right"><div class="muted">Proyección cierre</div><div class="big" id="kpi-global-proy">Q0.00</div></div></div><div class="muted" id="coach-msg">Aún lejos, impulsa ventas</div></div>
+        <div class="card"><div class="card-head"><h3>Ventas con Congelador</h3><span class="pill"><span id="kpi-vcc-clientes">0</span> clientes</span></div><div class="big" id="kpi-vcc">Q0.00</div><div class="muted">Avance vs Presupuesto General: <strong id="kpi-vcc-avance">0%</strong></div><div class="muted">Proyección cierre: <strong id="kpi-vcc-proy">Q0.00</strong></div></div>
+        <div class="card"><div class="card-head"><h3>Ventas sin Congelador</h3><span class="pill"><span id="kpi-vsc-clientes">0</span> clientes</span></div><div class="big" id="kpi-vsc">Q0.00</div><div class="muted">Avance vs meta: <strong id="kpi-vsc-avance">0%</strong></div><div class="muted">Proyección cierre: <strong id="kpi-vsc-proy">Q0.00</strong></div></div>
       </section>
 
-      <!-- KPIs -->
-      <section class="tab-view" id="tab-kpis">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Termómetro del mes</div>
-              <div class="card-subtitle" id="subtitulo-proyecto">Sin nombre de proyecto</div>
-            </div>
-            <div class="badge">
-              <span>Hoy:</span>
-              <span id="badge-dia">Día 0 / 0</span>
-            </div>
-          </div>
-
-          <div class="kpi-grid-main">
-            <div class="kpi-main" id="box-total-vendido">
-              <div class="kpi-label-main">Total vendido</div>
-              <div class="kpi-value-main" id="kpi-total-vendido">Q 0.00</div>
-              <div class="kpi-chip-row">
-                <div class="kpi-chip">
-                  <span class="kpi-chip-dot"></span>
-                  <span id="kpi-promedio-real-chip">Prom. real: Q 0.00</span>
-                </div>
-                <span style="font-size: 10px;">Con IVA</span>
-              </div>
-            </div>
-            <div class="kpi-main faltante" id="box-faltante">
-              <div class="kpi-label-main">Faltante vs meta</div>
-              <div class="kpi-value-main" id="kpi-faltante">Q 0.00</div>
-              <div class="kpi-chip-row">
-                <div class="kpi-chip">
-                  <span class="kpi-chip-dot" style="background:#fbbf24;"></span>
-                  <span id="kpi-promedio-necesario-chip">Prom. necesario: Q 0.00</span>
-                </div>
-                <span style="font-size: 10px;">Incluye rechazo 0%</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="kpi-grid-secondary">
-            <div class="kpi-mini">
-              <div class="kpi-mini-label">Avance %</div>
-              <div class="kpi-mini-value" id="kpi-avance">0.0%</div>
-              <div class="kpi-mini-tag" id="kpi-avance-tag">Arranque</div>
-            </div>
-            <div class="kpi-mini">
-              <div class="kpi-mini-label">Día actual</div>
-              <div class="kpi-mini-value" id="kpi-dia-actual">0</div>
-              <div class="kpi-mini-tag" id="kpi-dia-restante">0 días restantes</div>
-            </div>
-            <div class="kpi-mini">
-              <div class="kpi-mini-label">Meta diaria teórica</div>
-              <div class="kpi-mini-value" id="kpi-meta-diaria">Q 0.00</div>
-              <div class="kpi-mini-tag">Solo referencia</div>
-            </div>
-          </div>
-
-          <div class="kpi-footer-row">
-            <span>Promedio real considera solo días con venta registrada.</span>
-            <span class="tag-soft">
-              <span class="tag-soft-dot"></span>
-              <span id="kpi-info-registros">0 días con venta</span>
-            </span>
-          </div>
-        </div>
+      <section id="ventas" role="tabpanel">
+        <div class="card"><div class="card-head"><h3>Ventas con congelador</h3></div><div class="row"><div><label>Cliente</label><select id="sel-vcc"></select></div><div><label>Monto (Q)</label><input id="monto-vcc" type="number" inputmode="decimal" placeholder="0.00"/></div></div><div class="toolbar"><button class="btn primary" id="add-vcc">Agregar venta</button></div></div>
+        <div class="card"><div class="card-head"><h3>Ventas sin congelador</h3></div><div class="row"><div><label>Cliente</label><select id="sel-vsc"></select></div><div><label>Monto (Q)</label><input id="monto-vsc" type="number" inputmode="decimal" placeholder="0.00"/></div></div><div class="toolbar"><button class="btn primary" id="add-vsc">Agregar venta</button></div></div>
+        <div class="card"><div class="card-head"><h3>Historial de ventas</h3></div><table id="tabla-ventas"><thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Monto</th><th>Acciones</th></tr></thead><tbody></tbody></table></div>
       </section>
 
-      <!-- VENTAS -->
-      <section class="tab-view" id="tab-ventas">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Venta diaria</div>
-              <div class="card-subtitle">
-                Ingresa las ventas por día hábil (con IVA).
-              </div>
-            </div>
-            <div class="badge">
-              <span id="badge-dias-habiles">0 días</span>
-            </div>
-          </div>
+      <section id="clientes" role="tabpanel">
+        <div class="card"><div class="card-head"><h3>Crear cliente</h3></div><div class="row"><div><label>Nombre del negocio</label><input id="cliente-nombre" placeholder="Ej. Tienda Emanuel"/></div><div><label>Tipo</label><select id="cliente-tipo"><option value="congelador">Con congelador</option><option value="sin">Sin congelador</option></select></div></div><div class="toolbar"><button class="btn primary" id="btn-add-cliente">Agregar cliente</button></div><div class="collapsible"><button class="btn" id="toggle-db">Mostrar/Ocultar base de datos</button><div id="db-list" style="display:none;margin-top:8px"></div></div></div>
+      </section>
 
-          <div id="ventas-empty" class="empty-state">
-            Configura primero la <strong>meta mensual</strong> y los
-            <strong>días hábiles</strong> en la pestaña de Configuración para ver
-            aquí el calendario de ventas.
+      <section id="config" role="tabpanel">
+        <div class="card"><div class="card-head"><h3>Periodo y parámetros</h3></div>
+          <div class="row">
+            <div><label>Mes</label><select id="cfg-mes"></select></div>
+            <div><label>Año</label><select id="cfg-anio"></select></div>
           </div>
-
-          <div class="ventas-wrapper" id="ventas-wrapper" style="display:none;">
-            <div class="ventas-header-row">
-              <div>Día</div>
-              <div>Descripción</div>
-              <div>Venta (Q)</div>
-            </div>
-            <div class="ventas-body" id="ventas-body">
-              <!-- Filas generadas por JS -->
-            </div>
-            <div class="ventas-footer">
-              <span>Total acumulado:</span>
-              <span><strong id="ventas-total-footer">Q 0.00</strong></span>
-            </div>
+          <div class="row" style="margin-top:10px">
+            <div><label>Ruta</label><input id="cfg-ruta" placeholder="17029"/></div>
+            <div><label>Días hábiles</label><input id="cfg-dias" type="number" value="26"/></div>
           </div>
+          <div class="row" style="margin-top:10px">
+            <div><label>Presupuesto general (Q)</label><input id="cfg-presupuesto" type="number" inputmode="decimal" placeholder="0.00"/></div>
+            <div><label>Ventas sin congelador (Q)</label><input id="cfg-vsc" type="number" value="400" inputmode="decimal"/></div>
+          </div>
+          <div class="toolbar"><button class="btn primary" id="btn-guardar">GUARDAR</button><button class="btn danger" id="btn-reset">REINICIAR</button></div>
         </div>
       </section>
     </main>
   </div>
 
+  <div class="modal" id="modal-edit">
+    <div class="modal-card">
+      <h3>Editar venta</h3>
+      <div class="row" style="margin-top:8px">
+        <div><label>Monto (Q)</label><input id="edit-monto" type="number" inputmode="decimal" /></div>
+        <div><label>Fecha</label><input id="edit-fecha" type="date" /></div>
+      </div>
+      <div class="toolbar"><button class="btn" id="edit-cancel">Cancelar</button><button class="btn primary" id="edit-save">Guardar cambios</button></div>
+    </div>
+  </div>
+
   <script>
-    const STORAGE_KEY = "termometro_ventas_v1";
-
-    let state = {
-      metaMensual: 0,
-      diasHabiles: 0,
-      nombreProyecto: "",
-      notaConfig: "",
-      ventas: [] // array de números por día
-    };
-
-    function formatCurrency(value) {
-      if (isNaN(value)) value = 0;
-      const sign = value < 0 ? "-" : "";
-      const abs = Math.abs(value);
-      return (
-        sign +
-        "Q " +
-        abs.toLocaleString("es-GT", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })
-      );
-    }
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        state = Object.assign(state, data);
-        if (!Array.isArray(state.ventas)) state.ventas = [];
-      } catch (e) {
-        console.error("Error cargando estado", e);
-      }
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.error("Error guardando estado", e);
-      }
-    }
-
-    function syncConfigUI() {
-      document.getElementById("meta-mensual").value =
-        state.metaMensual > 0 ? state.metaMensual : "";
-      document.getElementById("dias-habiles").value =
-        state.diasHabiles > 0 ? state.diasHabiles : "";
-      document.getElementById("nombre-proyecto").value = state.nombreProyecto || "";
-      document.getElementById("nota-config").value = state.notaConfig || "";
-      document.getElementById("pill-meta").textContent =
-        "Meta: " + formatCurrency(state.metaMensual);
-      document.getElementById("badge-dias-habiles").textContent =
-        state.diasHabiles + " días";
-      document.getElementById("subtitulo-proyecto").textContent =
-        state.nombreProyecto || "Sin nombre de proyecto";
-    }
-
-    function ensureVentasLength() {
-      if (state.diasHabiles <= 0) {
-        state.ventas = [];
-        return;
-      }
-      const current = state.ventas.length;
-      if (current < state.diasHabiles) {
-        for (let i = current; i < state.diasHabiles; i++) {
-          state.ventas.push(0);
-        }
-      } else if (current > state.diasHabiles) {
-        state.ventas = state.ventas.slice(0, state.diasHabiles);
-      }
-    }
-
-    function renderVentasTable() {
-      const wrapper = document.getElementById("ventas-wrapper");
-      const body = document.getElementById("ventas-body");
-      const empty = document.getElementById("ventas-empty");
-
-      if (!state.diasHabiles || state.diasHabiles <= 0) {
-        wrapper.style.display = "none";
-        empty.style.display = "block";
-        body.innerHTML = "";
-        document.getElementById("ventas-total-footer").textContent = formatCurrency(0);
-        return;
-      }
-
-      wrapper.style.display = "flex";
-      empty.style.display = "none";
-
-      ensureVentasLength();
-
-      body.innerHTML = "";
-      state.ventas.forEach((valor, index) => {
-        const dia = index + 1;
-        const row = document.createElement("div");
-        row.className = "ventas-row";
-
-        const colDia = document.createElement("span");
-        colDia.className = "dia-label";
-        colDia.innerHTML = "Día <strong>" + dia + "</strong>";
-
-        const colDesc = document.createElement("span");
-        colDesc.textContent = "Venta ruta " + dia;
-
-        const colInput = document.createElement("input");
-        colInput.type = "number";
-        colInput.step = "0.01";
-        colInput.min = "0";
-        colInput.inputMode = "decimal";
-        colInput.value = valor > 0 ? valor : "";
-        colInput.addEventListener("change", (e) => {
-          let v = parseFloat(e.target.value);
-          if (isNaN(v) || v < 0) v = 0;
-          state.ventas[index] = v;
-          saveState();
-          recalculateKPIs();
-          updateVentasFooter();
-        });
-
-        row.appendChild(colDia);
-        row.appendChild(colDesc);
-        row.appendChild(colInput);
-        body.appendChild(row);
-      });
-
-      updateVentasFooter();
-    }
-
-    function updateVentasFooter() {
-      const total = state.ventas.reduce((sum, v) => sum + (v || 0), 0);
-      document.getElementById("ventas-total-footer").textContent = formatCurrency(total);
-    }
-
-    function recalculateKPIs() {
-      const meta = state.metaMensual || 0;
-      const dias = state.diasHabiles || 0;
-      const ventas = state.ventas || [];
-
-      const total = ventas.reduce((sum, v) => sum + (v || 0), 0);
-      const diasConVenta = ventas.filter((v) => v > 0).length;
-      const diaActual = diasConVenta > 0 ? Math.max(diasConVenta, 1) : 0;
-
-      const avance = meta > 0 ? (total / meta) * 100 : 0;
-      const faltanteRaw = meta - total;
-      const faltante = faltanteRaw > 0 ? faltanteRaw : 0;
-
-      const diasRestantes =
-        dias > 0
-          ? Math.max(dias - (diaActual || 0), 0)
-          : 0;
-
-      const promedioReal =
-        diaActual > 0 ? total / diaActual : 0;
-
-      const promedioNecesario =
-        meta > 0 && diasRestantes > 0
-          ? faltante / diasRestantes
-          : 0;
-
-      const metaDiariaTeorica =
-        meta > 0 && dias > 0 ? meta / dias : 0;
-
-      document.getElementById("kpi-total-vendido").textContent =
-        formatCurrency(total);
-      document.getElementById("kpi-faltante").textContent =
-        formatCurrency(faltante);
-
-      document.getElementById("kpi-promedio-real-chip").textContent =
-        "Prom. real: " + formatCurrency(promedioReal);
-      document.getElementById("kpi-promedio-necesario-chip").textContent =
-        "Prom. necesario: " + formatCurrency(promedioNecesario);
-
-      document.getElementById("kpi-avance").textContent =
-        avance.toFixed(1) + "%";
-
-      const tag = document.getElementById("kpi-avance-tag");
-      if (avance >= 100) {
-        tag.textContent = "Meta superada 🎉";
-      } else if (avance >= 80) {
-        tag.textContent = "Muy cerca, apriete final";
-      } else if (avance >= 50) {
-        tag.textContent = "Mitad del camino";
-      } else if (avance > 0) {
-        tag.textContent = "Arranque del mes";
-      } else {
-        tag.textContent = "Sin ventas aún";
-      }
-
-      document.getElementById("kpi-dia-actual").textContent = diaActual;
-      document.getElementById("kpi-dia-restante").textContent =
-        diasRestantes + " días restantes";
-
-      document.getElementById("kpi-meta-diaria").textContent =
-        formatCurrency(metaDiariaTeorica);
-
-      document.getElementById("kpi-info-registros").textContent =
-        diasConVenta + " días con venta";
-
-      document.getElementById("badge-dia").textContent =
-        "Día " + diaActual + " / " + dias;
-
-      const boxFaltante = document.getElementById("box-faltante");
-      if (faltanteRaw <= 0 && meta > 0) {
-        boxFaltante.style.opacity = "0.85";
-      } else {
-        boxFaltante.style.opacity = "1";
-      }
-
-      document.getElementById("pill-meta").textContent =
-        "Meta: " + formatCurrency(meta);
-      document.getElementById("badge-dias-habiles").textContent =
-        dias + " días";
-      document.getElementById("subtitulo-proyecto").textContent =
-        state.nombreProyecto || "Sin nombre de proyecto";
-    }
-
-    function handleTabChange(tabId) {
-      document
-        .querySelectorAll(".tab-btn")
-        .forEach((btn) => btn.classList.remove("active"));
-      document
-        .querySelectorAll(".tab-view")
-        .forEach((view) => view.classList.remove("active"));
-
-      document
-        .querySelector('.tab-btn[data-tab="' + tabId + '"]')
-        .classList.add("active");
-      document.getElementById("tab-" + tabId).classList.add("active");
-    }
-
-    function setupEvents() {
-      document.querySelectorAll(".tab-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const tabId = btn.getAttribute("data-tab");
-          handleTabChange(tabId);
-        });
-      });
-
-      document.getElementById("btn-guardar-config").addEventListener("click", () => {
-        const meta = parseFloat(
-          document.getElementById("meta-mensual").value
-        );
-        const dias = parseInt(
-          document.getElementById("dias-habiles").value,
-          10
-        );
-        const nombre = document.getElementById("nombre-proyecto").value.trim();
-        const nota = document.getElementById("nota-config").value.trim();
-
-        state.metaMensual = !isNaN(meta) && meta > 0 ? meta : 0;
-        state.diasHabiles = !isNaN(dias) && dias > 0 ? dias : 0;
-        state.nombreProyecto = nombre;
-        state.notaConfig = nota;
-
-        ensureVentasLength();
-        saveState();
-        syncConfigUI();
-        renderVentasTable();
-        recalculateKPIs();
-        handleTabChange("kpis");
-      });
-
-      document.getElementById("btn-reset").addEventListener("click", () => {
-        if (!confirm("¿Reiniciar todas las ventas del mes a 0?")) return;
-        state.ventas = new Array(state.diasHabiles || 0).fill(0);
-        saveState();
-        renderVentasTable();
-        recalculateKPIs();
-      });
-
-      ["meta-mensual", "dias-habiles", "nombre-proyecto", "nota-config"].forEach(
-        (id) => {
-          const el = document.getElementById(id);
-          el.addEventListener("blur", () => {
-            document.getElementById("btn-guardar-config").click();
-          });
-        }
-      );
-    }
-
-    function initStatusBarDate() {
-      const el = document.getElementById("status-date");
-      const now = new Date();
-      const formatter = new Intl.DateTimeFormat("es-GT", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit"
-      });
-      el.textContent = formatter.format(now);
-    }
-
-    function initApp() {
-      initStatusBarDate();
-      loadState();
-      ensureVentasLength();
-      syncConfigUI();
-      renderVentasTable();
-      recalculateKPIs();
-      setupEvents();
-    }
-
-    document.addEventListener("DOMContentLoaded", initApp);
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
+    const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+    const todayStr=()=>new Date().toISOString().slice(0,10);
+    const Q=n=>new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ',minimumFractionDigits:2}).format(n||0);
+    const KEY_CFG='s360_cfg', KEY_CLIENTS='s360_clients', KEY_SALES='s360_sales';
+    const uid=()=> (self.crypto&&crypto.randomUUID?crypto.randomUUID():('id-'+Date.now()+'-'+Math.random().toString(16).slice(2)));
+    const DEFAULT_DB={"17029":{"congelador":["Caseta Azul (Ixcanal)","Super 24 Sanarate Centro","Tienda Norma (Ixcanal)","Tienda Mónica","Tienda Helados Flor","Tienda y Librería Compu Game","Tienda Marissa 2","Tienda Magaly","Tienda Marissa","Super 24 Minerva","Super 24 El Rancho","Librería AMC"],"sin":["Variedades Génesis","Comedor Mary","Tienda Yanira","H&S;","Tienda Escobar","Tienda San José","Tienda Sanic"]},"17030":{"congelador":["Super 24 Conacaston Sanarate","super 24 El Rancho 3"],"sin":["Internet Velasquez","Tienda Kleidy","Negocios Estrada","CR GYM"]},"17031":{"congelador":[],"sin":[]},"17032":{"congelador":[],"sin":[]},"17033":{"congelador":[],"sin":[]},"17034":{"congelador":[],"sin":[]},"17035":{"congelador":[],"sin":[]}};
+    let cfg=load(KEY_CFG)||((d)=>({mes:d.getMonth()+1,anio:d.getFullYear(),ruta:'17029',dias:26,presupuesto:0,vscMeta:400,syncUrl:'',token:''}))(new Date());
+    let db=load(KEY_CLIENTS)||DEFAULT_DB; let sales=load(KEY_SALES)||[];
+    function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); } function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null } }
+    function initTabs(){ $$('.tab').forEach(btn=>{ btn.onclick=()=>{ $$('.tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const id=btn.dataset.tab; $$('main section').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='ventas') buildClientSelects(); if(id==='clientes') renderDBList(); };}); }
+    function initConfigSelectors(){ const m=$('#cfg-mes'),a=$('#cfg-anio'); const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; if(m) m.innerHTML=meses.map((n,i)=>`<option value="${i+1}">${n}</option>`).join(''); if(a) a.innerHTML=Array.from({length:6},(_,k)=>cfg.anio-1+k).map(y=>`<option value="${y}">${y}</option>`).join(''); if(m) m.value=cfg.mes; if(a) a.value=cfg.anio; if($('#cfg-ruta')) $('#cfg-ruta').value=cfg.ruta; if($('#cfg-dias')) $('#cfg-dias').value=cfg.dias; if($('#cfg-presupuesto')) $('#cfg-presupuesto').value=cfg.presupuesto; if($('#cfg-vsc')) $('#cfg-vsc').value=cfg.vscMeta; if($('#cfg-sync')) $('#cfg-sync').value=cfg.syncUrl||''; if($('#cfg-token')) $('#cfg-token').value=cfg.token||'';
+      if($('#btn-guardar')) $('#btn-guardar').onclick=()=>{ cfg.mes=+m.value; cfg.anio=+a.value; cfg.ruta=$('#cfg-ruta').value.trim()||cfg.ruta; cfg.dias=Math.max(1,+$('#cfg-dias').value||26); cfg.presupuesto=Math.max(0,+$('#cfg-presupuesto').value||0); const vscEl=$('#cfg-vsc'); cfg.vscMeta=vscEl?Math.max(0,+vscEl.value||0):cfg.vscMeta; save(KEY_CFG,cfg); renderAll(); alert('Configuración guardada'); };
+      if($('#btn-reset')) $('#btn-reset').onclick=()=>{ if(confirm('Esto borrará todas las ventas del mes actual. ¿Continuar?')){ sales=sales.filter(v=>!(v.ruta===cfg.ruta&&v.anio===cfg.anio&&v.mes===cfg.mes)); save(KEY_SALES,sales); renderAll(); alert('Mes reiniciado.'); } }; }
+    function buildClientSelects(){ const route=db[cfg.ruta]||{congelador:[],sin:[]}; if($('#sel-vcc')) $('#sel-vcc').innerHTML=route.congelador.map(n=>`<option>${n}</option>`).join(''); if($('#sel-vsc')) $('#sel-vsc').innerHTML=route.sin.map(n=>`<option>${n}</option>`).join(''); }
+    if($('#add-vcc')) $('#add-vcc').onclick=()=>addVenta('congelador',$('#sel-vcc').value,+$('#monto-vcc').value||0); if($('#add-vsc')) $('#add-vsc').onclick=()=>addVenta('sin',$('#sel-vsc').value,+$('#monto-vsc').value||0);
+    async function addVenta(tipo,cliente,monto){ if(!cliente){alert('Selecciona un cliente.');return} if(!(monto>0)){alert('Ingresa un monto válido.');return} const v={id:uid(),fecha:todayStr(),tipo,cliente,monto:+monto,ruta:cfg.ruta,mes:cfg.mes,anio:cfg.anio}; sales.push(v); save(KEY_SALES,sales); if($('#monto-vcc')) $('#monto-vcc').value=''; if($('#monto-vsc')) $('#monto-vsc').value=''; renderAll(); if(cfg.syncUrl){ try{ await fetch(cfg.syncUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:v.id,fecha:v.fecha,tipo:v.tipo,cliente:v.cliente,monto:v.monto,ruta:v.ruta,mes:v.mes,anio:v.anio,token:cfg.token||''})}); }catch(e){} } }
+    function renderVentasTable(){ const tbody=$('#tabla-ventas tbody'); if(!tbody) return; const list=currentSales(); tbody.innerHTML=list.map(v=>`<tr><td>${v.fecha}</td><td>${v.tipo==='congelador'?'Con congelador':'Sin congelador'}</td><td>${escapeHtml(v.cliente)}</td><td>${Q(v.monto)}</td><td><button class='btn' data-edit='${v.id}'>Editar</button> <button class='btn danger' data-del='${v.id}'>Borrar</button></td></tr>`).join(''); tbody.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.dataset.edit)); tbody.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>delVenta(b.dataset.del)); }
+    function openEdit(id){ const v=sales.find(x=>x.id===id); if(!v) return; const m=document.getElementById('modal-edit'); m.classList.add('active'); document.getElementById('edit-monto').value=v.monto; document.getElementById('edit-fecha').value=v.fecha; document.getElementById('edit-save').onclick=()=>{ const nuevo=+document.getElementById('edit-monto').value||0; if(!(nuevo>0)) return alert('Monto inválido'); const f=document.getElementById('edit-fecha').value||todayStr(); v.monto=nuevo; v.fecha=f; save(KEY_SALES,sales); m.classList.remove('active'); renderAll(); }; document.getElementById('edit-cancel').onclick=()=> m.classList.remove('active'); }
+    function delVenta(id){ if(!confirm('¿Eliminar esta venta?')) return; sales=sales.filter(v=>v.id!==id); save(KEY_SALES,sales); renderAll(); }
+    function currentSales(){ return sales.filter(v=>v.ruta===cfg.ruta && v.mes===cfg.mes && v.anio===cfg.anio).sort((a,b)=> b.fecha.localeCompare(a.fecha)); }
+    if(document.getElementById('btn-add-cliente')) document.getElementById('btn-add-cliente').onclick=()=>{ const nombre=document.getElementById('cliente-nombre').value.trim(); const tipo=document.getElementById('cliente-tipo').value; if(!nombre) return alert('Escribe el nombre del negocio'); if(!db[cfg.ruta]) db[cfg.ruta]={congelador:[],sin:[]}; const arr=tipo==='congelador'?db[cfg.ruta].congelador:db[cfg.ruta].sin; arr.push(nombre); save(KEY_CLIENTS,db); document.getElementById('cliente-nombre').value=''; buildClientSelects(); renderDBList(); alert('Cliente agregado a la ruta '+cfg.ruta); };
+    if(document.getElementById('toggle-db')) document.getElementById('toggle-db').onclick=()=>{ const el=document.getElementById('db-list'); el.style.display=el.style.display==='none'?'block':'none'; if(el.style.display==='block') renderDBList(); };
+    function renderDBList(){ const wrap=document.getElementById('db-list'); if(!wrap) return; const route=db[cfg.ruta]||{congelador:[],sin:[]}; wrap.innerHTML=`<div class='subrow'><span class='muted'>Ruta <strong>${escapeHtml(cfg.ruta)}</strong></span><span class='pill'>${route.congelador.length} con · ${route.sin.length} sin</span></div><div style='display:grid;gap:8px;margin-top:8px'><div><h3>Listado A (congelador)</h3><ul style='margin:6px 0 0 16px'>${route.congelador.map(c=>`<li>${escapeHtml(c)}</li>`).join('')||'<li><em>Vacío</em></li>'}</ul></div><div><h3>Listado B (sin congelador)</h3><ul style='margin:6px 0 0 16px'>${route.sin.map(c=>`<li>${escapeHtml(c)}</li>`).join('')||'<li><em>Vacío</em></li>'}</ul></div></div>`; }
+    function renderDashboard(){ const list=currentSales(); const total=sum(list); const vcc=sum(list.filter(v=>v.tipo==='congelador')); const vsc=sum(list.filter(v=>v.tipo==='sin')); const clVcc=new Set(list.filter(v=>v.tipo==='congelador').map(v=>v.cliente)).size; const clVsc=new Set(list.filter(v=>v.tipo==='sin').map(v=>v.cliente)).size; setText('#kpi-presupuesto',Q(cfg.presupuesto)); setText('#dash-ruta', cfg.ruta); setText('#kpi-vendido',Q(total)); const falta=Math.max(0,cfg.presupuesto-total); setText('#kpi-falta',Q(falta)); const avance=cfg.presupuesto>0?(total/cfg.presupuesto*100):0; document.getElementById('progress-bar').style.width=Math.min(100,avance).toFixed(1)+'%'; document.getElementById('progress-bar').style.background=avance>=100?'var(--ok)':(avance>=60?'var(--warn)':'var(--danger)'); setText('#kpi-global-avance',`${avance.toFixed(1)}%`); const hoy=new Date(); const diasTrans=Math.max(1,Math.min(cfg.dias,hoy.getDate())); const promDia=total/diasTrans; const proy=Math.round(promDia*cfg.dias*100)/100; setText('#kpi-global-proy',Q(proy)); setText('#coach-msg', avance>=100?'¡Meta cumplida! Buen trabajo':(avance>=60?'¡Casi! Mantén el ritmo':'Aún lejos, impulsa ventas')); setText('#kpi-vcc',Q(vcc)); setText('#kpi-vcc-clientes',clVcc); const avVcc=cfg.presupuesto?(vcc/cfg.presupuesto*100):0; setText('#kpi-vcc-avance',`${avVcc.toFixed(1)}%`); setText('#kpi-vcc-proy',Q(Math.round((vcc/diasTrans*cfg.dias)*100)/100)); setText('#kpi-vsc',Q(vsc)); setText('#kpi-vsc-clientes',clVsc); const avVsc=cfg.vscMeta>0?(vsc/cfg.vscMeta*100):0; setText('#kpi-vsc-avance',`${avVsc.toFixed(1)}%`); setText('#kpi-vsc-proy',Q(Math.round((vsc/diasTrans*cfg.dias)*100)/100)); }
+    function setText(sel,val){ const el=document.querySelector(sel); if(el) el.textContent=val; } function sum(arr){ return arr.reduce((a,b)=>a+(+b.monto||0),0); } function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;","\"":"&quot;","'":"&#39;","<":"&lt;",">":"&gt;"}[m])); }
+    function renderAll(){ buildClientSelects(); renderVentasTable(); renderDashboard(); }
+    initTabs(); initConfigSelectors(); renderAll();
   </script>
 </body>
 </html>
