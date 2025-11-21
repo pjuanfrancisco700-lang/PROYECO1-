@@ -129,7 +129,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(4,1fr);
+      grid-template-columns: repeat(3,1fr);
       gap: 8px;
       margin-top: 6px;
     }
@@ -253,7 +253,6 @@
       <button id="btnLeft">⬅️</button>
       <button id="btnShoot">🔫 / Start</button>
       <button id="btnRight">➡️</button>
-      <button id="btnPause">⏸️</button>
     </div>
 
     <div class="game-over-banner" id="gameOverBanner" style="display:none;">
@@ -373,7 +372,6 @@ let circles = [];
 let score = 0;
 let running = false;
 let gameOver = false;
-let paused = false;
 let lastSpawnTime = 0;
 let level = 1;
 let currentPlayer = "";
@@ -418,7 +416,7 @@ function shoot() {
     resetGame();
     return;
   }
-  if (!running || paused) return;
+  if (!running) return;
   bullets.push({
     x: ship.x,
     y: ship.y - ship.h / 2,
@@ -433,7 +431,6 @@ function resetGame() {
   score = 0;
   level = 1;
   running = true;
-  paused = false;
   gameOver = false;
   lastSpawnTime = performance.now();
   lastFrameTime = performance.now();
@@ -447,7 +444,6 @@ function resetGame() {
 function endGame() {
   if (gameOver) return;
   running = false;
-  paused = false;
   gameOver = true;
   document.getElementById("gameStateText").textContent = "Terminado";
   const text = `Te golpeó un círculo 😵\nPuntaje: ${score}\nNivel: ${level}`;
@@ -460,27 +456,6 @@ function endGame() {
     renderRanking();
     document.getElementById("bestScore").textContent = bestFor(currentPlayer);
   }
-}
-
-function setPause(flag) {
-  if (!running || gameOver) return;
-  if (flag) {
-    if (paused) return;
-    paused = true;
-    running = false;
-    document.getElementById("gameStateText").textContent = "Pausa";
-  } else {
-    if (!paused) return;
-    paused = false;
-    running = true;
-    document.getElementById("gameStateText").textContent = "Jugando";
-    lastFrameTime = performance.now();
-    requestAnimationFrame(loop);
-  }
-}
-
-function togglePause() {
-  setPause(!paused);
 }
 
 function update(dt, now) {
@@ -634,7 +609,7 @@ function draw() {
 }
 
 function loop(timestamp) {
-  if (!running || paused) return;
+  if (!running) return;
   if (!lastFrameTime) lastFrameTime = timestamp;
   const dtMs = timestamp - lastFrameTime;
   lastFrameTime = timestamp;
@@ -653,7 +628,6 @@ document.getElementById("btnRight").addEventListener("click", () => {
   ship.x += 20;
 });
 document.getElementById("btnShoot").addEventListener("click", shoot);
-document.getElementById("btnPause").addEventListener("click", togglePause);
 
 let dragging = false;
 canvas.addEventListener("pointerdown", e => {
@@ -694,17 +668,16 @@ document.getElementById("btnUseName").addEventListener("click", () => {
 
 const rankingOverlay = document.getElementById("rankingOverlay");
 document.getElementById("btnShowRanking").addEventListener("click", () => {
-  if (running && !paused && !gameOver) {
-    setPause(true);
+  // Opción C: solo cuando no hay partida en curso
+  if (running) {
+    alert("Termina la partida antes de ver el ranking.");
+    return;
   }
   renderRanking();
   rankingOverlay.style.display = "flex";
 });
 document.getElementById("btnCloseRanking").addEventListener("click", () => {
   rankingOverlay.style.display = "none";
-  if (paused && !gameOver) {
-    setPause(false);
-  }
 });
 
 /* ====================== PANTALLA DE INICIO ====================== */
