@@ -332,4 +332,176 @@
 
       document.getElementById("metric-ventas-count").textContent = count;
       document.getElementById("metric-ventas-total").textContent = formatCurrency(total);
-      document.getEl
+      document.getElementById("metric-pendientes").textContent = pendientes;
+
+      const listaUltimas = document.getElementById("lista-ultimas-ventas");
+      listaUltimas.innerHTML = "";
+
+      const ultimas = [...ventas].slice(-3).reverse();
+      ultimas.forEach(v => {
+        const li = document.createElement("li");
+        li.className = "list-item";
+        li.innerHTML = `<div class="list-main">
+            <div class="list-title">${v.cliente}</div>
+            <div class="list-meta">${formatDateTime(v.fecha)} · Q${formatCurrency(v.monto)} · ${v.metodo}</div>
+          </div>
+          <div class="badge ${v.enviado ? "badge-sent" : "badge-pending"}">${v.enviado ? "Enviado" : "Pendiente"}</div>`;
+        listaUltimas.appendChild(li);
+      });
+    }
+
+    function renderVentas() {
+      const lista = document.getElementById("lista-ventas-completa");
+      lista.innerHTML = "";
+
+      [...ventas].reverse().forEach(v => {
+        const li = document.createElement("li");
+        li.className = "list-item";
+        li.innerHTML = `<div class="list-main">
+            <div class="list-title">${v.cliente} · Q${formatCurrency(v.monto)}</div>
+            <div class="list-meta">${formatDateTime(v.fecha)} · ${v.metodo}</div>
+          </div>
+          <div class="badge ${v.enviado ? "badge-sent" : "badge-pending"}">${v.enviado ? "Enviado" : "Pendiente"}</div>`;
+        lista.appendChild(li);
+      });
+    }
+
+    async function registrarVenta() {
+      const cliente = document.getElementById("input-cliente").value.trim() || "Sin cliente";
+      const montoRaw = document.getElementById("input-monto").value.trim();
+      const metodo = document.getElementById("select-metodo").value;
+      const monto = Number(montoRaw);
+
+      if (!montoRaw || isNaN(monto) || monto <= 0) {
+        alert("Ingresa un monto válido");
+        return;
+      }
+
+      const venta = {
+        id: Date.now().toString(),
+        fecha: new Date().toISOString(),
+        cliente,
+        monto,
+        metodo,
+        enviado: false
+      };
+
+      ventas.push(venta);
+      document.getElementById("input-monto").value = "";
+      saveVentas();
+
+      // intentar enviar de inmediato al servidor
+      enviarVentaAlServidor(venta).then(ok => {
+        if (ok) {
+          const idx = ventas.findIndex(v => v.id === venta.id);
+          if (idx !== -1) {
+            ventas[idx].enviado = true;
+            saveVentas();
+          }
+        }
+      });
+    }
+
+    function guardarConfig() {
+      const url = document.getElementById("input-sync-url").value.trim();
+      const token = document.getElementById("input-token").value.trim();
+      localStorage.setItem(KEY_SYNC_URL, url);
+      localStorage.setItem(KEY_SYNC_TOKEN, token);
+      alert("Configuración guardada");
+    }
+
+    function getSyncConfig() {
+      return {
+        url: (localStorage.getItem(KEY_SYNC_URL) || "").trim(),
+        token: (localStorage.getItem(KEY_SYNC_TOKEN) || "").trim()
+      };
+    }
+
+    async function probarConexion() {
+      const { url, token } = getSyncConfig();
+      if (!url || !token) {
+        alert("Primero configura Sync URL y Token.");
+        return;
+      }
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, action: "ping" })
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        await resp.json().catch(() => null);
+        alert("Conexión OK con Apps Script.");
+      } catch (e) {
+        alert("Error al conectar: " + e.message);
+      }
+    }
+
+    async function enviarVentaAlServidor(venta) {
+      const { url, token } = getSyncConfig();
+      if (!url || !token) return false;
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            action: "addVenta",
+            data: venta
+          })
+        });
+        if (!resp.ok) return false;
+        const data = await resp.json().catch(() => null);
+        if (data && data.ok === false) return false;
+        return true;
+      } catch (e) {
+        console.error("Error enviando venta:", e);
+        return false;
+      }
+    }
+
+    async function sincronizarPendientes() {
+      const pendientes = ventas.filter(v => !v.enviado);
+      if (pendientes.length === 0) {
+        alert("No hay ventas pendientes por enviar.");
+        return;
+      }
+      let enviadas = 0;
+      for (const v of pendientes) {
+        const ok = await enviarVentaAlServidor(v);
+        if (ok) {
+          v.enviado = true;
+          enviadas++;
+        }
+      }
+      saveVentas();
+      alert(`Sincronización terminada. Enviadas: ${enviadas} de ${pendientes.length}`);
+    }
+
+    // Maneja el cambio de vistas (tabs)
+    function setActiveView(view) {
+      // Oculta todas las vistas
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      // Muestra la vista seleccionada
+      const target = document.getElementById("view-" + view);
+      if (target) target.classList.add("active");
+
+      // Actualiza estado visual de las pestañas
+      document.querySelectorAll(".tab-item").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.target === view);
+      });
+    }
+
+    // Inicialización
+    document.addEventListener("DOMContentLoaded", () => {
+      // Click en tabs inferiores
+      document.querySelectorAll(".tab-item").forEach(tab => {
+        tab.addEventListener("click", () => setActiveView(tab.dataset.target));
+      });
+
+      // Cargar datos iniciales
+      loadFromLocalStorage();
+    });
+  </script>
+</body>
+</html>
