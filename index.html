@@ -152,6 +152,12 @@
     .btn-primary { background:var(--accent); color:#fff; }
     .btn-secondary { background:#f2f2f7; border:1px solid var(--border-soft); }
 
+    .btn-sm {
+      padding:6px 10px;
+      font-size:0.75rem;
+      border-radius:999px;
+    }
+
     .tab-bar {
       display:flex;
       justify-content:space-around;
@@ -189,7 +195,10 @@
       <!-- DASHBOARD -->
       <section id="view-dashboard" class="view active">
         <div class="card">
-          <div class="card-header"><span class="card-title">Resumen</span><span class="pill">Demo</span></div>
+          <div class="card-header">
+            <span class="card-title">Resumen</span>
+            <span class="pill">Demo</span>
+          </div>
           <div class="metrics">
             <div class="metric-item">
               <div class="metric-label">Ventas</div>
@@ -224,7 +233,8 @@
           <div class="card-header"><span class="card-title">Registrar venta</span></div>
           <div class="form-group"><label>Cliente</label><input id="input-cliente"></div>
           <div class="form-group"><label>Monto Q</label><input id="input-monto" type="number"></div>
-          <div class="form-group"><label>Método</label>
+          <div class="form-group">
+            <label>Método</label>
             <select id="select-metodo">
               <option>Contado</option>
               <option>Crédito</option>
@@ -242,9 +252,23 @@
       <section id="view-config" class="view">
         <div class="card">
           <div class="card-header"><span class="card-title">Sincronización</span></div>
-          <div class="form-group"><label>Sync URL</label><input id="input-sync-url"></div>
-          <div class="form-group"><label>Token</label><input id="input-token"></div>
-          <button class="btn btn-primary" onclick="guardarConfig()">Guardar</button>
+          <div class="form-group">
+            <label>Sync URL</label>
+            <input id="input-sync-url" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <div class="form-group">
+            <label>Token</label>
+            <input id="input-token" placeholder="TOKEN_MINIAPP_2025">
+          </div>
+          <div class="form-group">
+            <button class="btn btn-primary" onclick="guardarConfig()">Guardar</button>
+          </div>
+          <div class="form-group">
+            <button class="btn btn-secondary" onclick="probarConexion()">Probar conexión</button>
+          </div>
+          <div class="form-group">
+            <button class="btn btn-primary" onclick="sincronizarPendientes()">Sincronizar pendientes</button>
+          </div>
         </div>
       </section>
     </main>
@@ -308,97 +332,4 @@
 
       document.getElementById("metric-ventas-count").textContent = count;
       document.getElementById("metric-ventas-total").textContent = formatCurrency(total);
-      document.getElementById("metric-pendientes").textContent = pendientes;
-
-      const listaUltimas = document.getElementById("lista-ultimas-ventas");
-      listaUltimas.innerHTML = "";
-
-      const ultimas = [...ventas].slice(-3).reverse();
-      ultimas.forEach(v => {
-        const li = document.createElement("li");
-        li.className = "list-item";
-        li.innerHTML = `<div class="list-main">
-            <div class="list-title">${v.cliente}</div>
-            <div class="list-meta">${formatDateTime(v.fecha)} · Q${formatCurrency(v.monto)} · ${v.metodo}</div>
-          </div>
-          <div class="badge ${v.enviado ? "badge-sent" : "badge-pending"}">${v.enviado ? "Enviado" : "Pendiente"}</div>`;
-        listaUltimas.appendChild(li);
-      });
-    }
-
-    function renderVentas() {
-      const lista = document.getElementById("lista-ventas-completa");
-      lista.innerHTML = "";
-
-      [...ventas].reverse().forEach(v => {
-        const li = document.createElement("li");
-        li.className = "list-item";
-        li.innerHTML = `<div class="list-main">
-            <div class="list-title">${v.cliente} · Q${formatCurrency(v.monto)}</div>
-            <div class="list-meta">${formatDateTime(v.fecha)} · ${v.metodo}</div>
-          </div>
-          <div class="badge ${v.enviado ? "badge-sent" : "badge-pending"}">${v.enviado ? "Enviado" : "Pendiente"}</div>`;
-        lista.appendChild(li);
-      });
-    }
-
-    function registrarVenta() {
-      const cliente = document.getElementById("input-cliente").value.trim() || "Sin cliente";
-      const montoRaw = document.getElementById("input-monto").value.trim();
-      const metodo = document.getElementById("select-metodo").value;
-      const monto = Number(montoRaw);
-
-      if (!montoRaw || isNaN(monto) || monto <= 0) {
-        alert("Ingresa un monto válido");
-        return;
-      }
-
-      const venta = {
-        id: Date.now().toString(),
-        fecha: new Date().toISOString(),
-        cliente,
-        monto,
-        metodo,
-        enviado: false
-      };
-
-      ventas.push(venta);
-      document.getElementById("input-monto").value = "";
-      saveVentas();
-    }
-
-    function guardarConfig() {
-      const url = document.getElementById("input-sync-url").value.trim();
-      const token = document.getElementById("input-token").value.trim();
-      localStorage.setItem(KEY_SYNC_URL, url);
-      localStorage.setItem(KEY_SYNC_TOKEN, token);
-      alert("Configuración guardada");
-    }
-
-    // Maneja el cambio de vistas (tabs)
-    function setActiveView(view) {
-      // Oculta todas las vistas
-      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-      // Muestra la vista seleccionada
-      const target = document.getElementById("view-" + view);
-      if (target) target.classList.add("active");
-
-      // Actualiza estado visual de las pestañas
-      document.querySelectorAll(".tab-item").forEach(tab => {
-        tab.classList.toggle("active", tab.dataset.target === view);
-      });
-    }
-
-    // Inicialización
-    document.addEventListener("DOMContentLoaded", () => {
-      // Click en tabs inferiores
-      document.querySelectorAll(".tab-item").forEach(tab => {
-        tab.addEventListener("click", () => setActiveView(tab.dataset.target));
-      });
-
-      // Cargar datos iniciales
-      loadFromLocalStorage();
-    });
-  </script>
-</body>
-</html>
+      document.getEl
