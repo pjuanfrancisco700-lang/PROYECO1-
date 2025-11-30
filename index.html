@@ -1,22 +1,1323 @@
-async function enviarVentaAlServidor(venta) {
-  const { url, token } = getSyncConfig();
-  if (!url || !token) return false;
-  try {
-    const resp = await fetch(url, {
-      method: "POST",
-      // Sin headers personalizados, mandamos JSON en bruto
-      body: JSON.stringify({
-        token,
-        action: "addVenta",
-        data: venta
-      })
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Sombrela 360 — Control de Ventas</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sombrela 360">
+  <meta name="theme-color" content="#F2F2F7">
+  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/app-167.png?v=1">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/app-152.png?v=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/app-32.png?v=1">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/app-16.png?v=1">
+  <style>
+    :root{
+      --bg:#F2F2F7;
+      --surface:#fff;
+      --text:#0A0A0A;
+      --muted:#6B7280;
+      --brand:#2C6E7F;
+      --ok:#34C759;
+      --warn:#FFCC00;
+      --danger:#FF3B30;
+      --border:#E5E7EB;
+      --shadow:0 6px 20px rgba(0,0,0,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{
+      max-width:420px;
+      margin:0 auto;
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:var(--bg);
+      backdrop-filter:saturate(180%) blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+    }
+    .tabs{
+      display:flex;
+      gap:14px;
+      justify-content:space-between;
+      padding:4px 6px;
+    }
+    .tab{
+      appearance:none;
+      border:none;
+      background:transparent;
+      padding:10px 14px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:var(--muted);
+      font-weight:600;
+      cursor:pointer;
+      transition:all .18s ease;
+    }
+    .tab svg{
+      width:24px;
+      height:24px;
+      stroke:currentColor;
+      stroke-width:2.4;
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+    .tab.active{
+      background:var(--surface);
+      color:var(--text);
+      box-shadow:0 3px 10px rgba(0,0,0,.08);
+      transform:translateY(-1px);
+    }
+    main{padding:12px;flex:1}
+    section{display:none}
+    section.active{display:block}
+
+    .card{
+      min-height:160px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+      margin-bottom:14px;
+    }
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .card-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:6px;
+    }
+    .pill{
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--border);
+      background:#F7F7FB;
+      padding:4px 10px;
+      border-radius:999px;
+    }
+    .big{font-size:26px;font-weight:800;letter-spacing:.2px}
+    .subrow{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      color:var(--muted);
+      font-size:13px;
+      margin-top:8px;
+      justify-content:space-between;
+    }
+    .kpi-main-row{margin-top:10px;gap:24px}
+    .kpi-block{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      flex:1;
+    }
+    .kpi-label{font-size:12px;color:var(--muted);font-weight:500}
+    .kpi-value{font-size:20px;font-weight:800;color:var(--text);letter-spacing:.2px}
+    .progress{
+      height:12px;
+      border-radius:999px;
+      background:#EEE;
+      overflow:hidden;
+      border:1px solid var(--border);
+      margin-top:8px;
+    }
+    .progress>div{
+      height:100%;
+      width:0%;
+      transition:width .4s ease;
+      border-radius:999px;
+    }
+
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#FBFBFE;
+      font-size:16px;
+    }
+    input[type=number]{appearance:textfield}
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--surface);
+      font-weight:700;
+      font-size:14px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:var(--brand);
+      border-color:transparent;
+      color:#fff;
+      transition:transform .15s ease, box-shadow .15s ease;
+    }
+    .btn.primary:active{
+      transform:scale(.97);
+      box-shadow:0 4px 12px rgba(44,110,127,0.45);
+    }
+    .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+    .btn.btn-theme{
+      background:linear-gradient(135deg,#E6D8FF,#F3ECFF);
+      border-color:transparent;
+      color:#27115A;
+      font-weight:700;
+      box-shadow:0 4px 12px rgba(104,72,197,.25);
+    }
+    .btn.btn-theme svg{
+      width:16px;
+      height:16px;
+      stroke:#27115A;
+      stroke-width:2.2;
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+    .btn.btn-theme span{font-size:13px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+    .ventas-toolbar{
+      position:sticky;
+      bottom:0;
+      padding-top:8px;
+      padding-bottom:env(safe-area-inset-bottom,8px);
+      background:linear-gradient(to top, rgba(242,242,247,0.98), rgba(242,242,247,0.85), transparent);
+      z-index:5;
+    }
+
+    table{width:100%;border-collapse:collapse}
+    th,td{
+      padding:8px;
+      border-bottom:1px solid var(--border);
+      font-size:12px;
+      text-align:left;
+    }
+    th{color:var(--muted);font-weight:700}
+    .collapsible{border-top:1px dashed var(--border);margin-top:8px;padding-top:8px}
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:30;
+    }
+    .modal.active{display:flex}
+    .modal-card{
+      width:100%;
+      max-width:400px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+
+    /* Cuando hay modal abierto, escondemos la barra de agregar venta */
+    body.modal-open .ventas-toolbar{
+      display:none !important;
+    }
+
+    /* Estilos extra */
+    .card-ventas{padding-top:18px;padding-bottom:18px}
+    .ventas-fields{display:flex;flex-direction:column;gap:12px}
+    .ventas-fields .field select,
+    .ventas-fields .field input{
+      padding:14px;
+      border-radius:14px;
+      font-size:16px;
+    }
+    .ventas-toolbar .btn.primary{
+      width:100%;
+      justify-content:center;
+      font-size:16px;
+      padding:12px 14px;
+    }
+
+    .ios-select{
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;
+      -webkit-appearance:none;
+      appearance:none;
+      border-radius:10px;
+      border:2px solid #B6C0CC;
+      background:linear-gradient(135deg,#F9FAFB,#F3F4F6);
+      padding:16px 46px 16px 16px;
+      font-size:17px;
+      font-weight:600;
+      color:#111827;
+      outline:none;
+      box-shadow:0 1px 3px rgba(15,23,42,0.08);
+      transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='8 10 12 14 16 10'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;
+      background-position:right 12px center;
+      background-size:18px;
+    }
+    .ios-select:focus{
+      border-color:#2C6E7F;
+      box-shadow:0 3px 10px rgba(44,110,127,0.35);
+      background:linear-gradient(135deg,#FFFFFF,#F5FDF4);
+    }
+
+    .card-compact{min-height:110px;padding:10px 12px !important}
+    .card-compact .big{font-size:22px}
+    .card-compact .subrow{margin-top:4px}
+
+    .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+    .theme-option{
+      border-radius:12px;
+      border:1px solid var(--border);
+      padding:8px 10px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:2px;
+      background:#FBFBFE;
+      font-size:12px;
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .theme-option:hover{
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,.06);
+    }
+    .theme-option.active{
+      border-color:var(--brand);
+      box-shadow:0 0 0 1px rgba(44,110,127,0.25);
+    }
+    .theme-title{font-size:13px;font-weight:700}
+    .theme-sub{font-size:11px;color:var(--muted)}
+    .theme-dots{display:flex;gap:4px;margin-top:4px}
+    .theme-dot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.08);
+    }
+
+    /* Botón de Metrics en la barra superior */
+    .icon-btn{
+      appearance:none;
+      border:none;
+      background:transparent;
+      padding:6px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:background .15s ease, box-shadow .15s ease, transform .1s ease;
+    }
+    .icon-btn svg{
+      width:20px;
+      height:20px;
+      stroke:var(--muted);
+      stroke-width:2.2;
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+    .icon-btn.metrics-btn{
+      background:rgba(255,255,255,.95);
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+      border:1px solid var(--border);
+    }
+    .icon-btn.metrics-btn:active{
+      transform:scale(.96);
+      box-shadow:0 1px 4px rgba(0,0,0,.12);
+    }
+
+    /* Modal Monthly Metrics */
+    .mm-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:6px;
+    }
+    .mm-title{font-size:16px;font-weight:700}
+    .mm-sub{font-size:12px;color:var(--muted)}
+    .mm-badge{
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:#E5F0FF;
+      color:#1D4ED8;
+      font-weight:600;
+    }
+    .mm-section{
+      margin-top:10px;
+      padding:10px;
+      border-radius:12px;
+      background:#F9FAFB;
+    }
+    .mm-kpi-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+    }
+    .mm-label{font-size:12px;color:var(--muted)}
+    .mm-value{font-size:20px;font-weight:800}
+    .mm-small{font-size:11px;color:var(--muted)}
+    .mm-badges-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .mm-tag{
+      font-size:11px;
+      border-radius:999px;
+      padding:4px 10px;
+      background:#E0F2FE;
+      color:#0369A1;
+      font-weight:600;
+    }
+    .mm-msg{margin-top:8px;font-size:12px;color:#4B5563}
+    .mm-section-title{font-size:13px;font-weight:600;margin-bottom:6px}
+    .mm-trend-list{list-style:none;margin:0;padding:0}
+    .mm-trend-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:12px;
+      padding:4px 0;
+      border-bottom:1px dashed var(--border);
+    }
+    .mm-trend-row:last-child{border-bottom:none}
+
+    @media (max-width:480px){
+      .app{max-width:100%}
+      main{padding:10px}
+      .card{padding:12px;margin-bottom:12px}
+      .tab span{display:none}
+      .tabs{gap:6px}
+      .big{font-size:24px}
+    }
+    @media (max-width:360px){
+      .btn{padding:8px 10px;font-size:13px}
+      .big{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <nav class="tabs" role="tablist" aria-label="Barra de menú">
+        <button class="tab active" data-tab="dashboard" aria-selected="true" title="Dashboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="4 16 9 11 13 14 20 7"/>
+            <polyline points="4 20 20 20"/>
+          </svg>
+        </button>
+        <button class="tab" data-tab="ventas" title="Registro de ventas">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h2l1 9h10l1-6H8"/>
+            <circle cx="10" cy="18" r="2"/>
+            <circle cx="17" cy="18" r="2"/>
+          </svg>
+        </button>
+        <button class="tab" data-tab="clientes" title="Cliente nuevo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="7" r="3.2"/>
+            <path d="M5.2 19a6.8 6.8 0 0 1 13.6 0"/>
+            <line x1="20" y1="7.8" x2="20" y2="13.2"/>
+            <line x1="17.4" y1="10.5" x2="22.6" y2="10.5"/>
+          </svg>
+        </button>
+        <button class="tab" data-tab="config" title="Configuración">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="6" y1="5" x2="18" y2="5"/>
+            <circle cx="14" cy="5" r="2"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+            <circle cx="10" cy="12" r="2"/>
+            <line x1="6" y1="19" x2="18" y2="19"/>
+            <circle cx="16" cy="19" r="2"/>
+          </svg>
+        </button>
+      </nav>
+      <button class="icon-btn metrics-btn" id="btn-metrics" title="Monthly Metrics" aria-label="Monthly Metrics">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="4 18 9 12 13 15 20 7"/>
+          <polyline points="4 6 4 18 20 18"/>
+        </svg>
+      </button>
+    </header>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="active" role="tabpanel">
+        <div class="card">
+          <div class="card-head">
+            <h3>Presupuesto General</h3>
+            <span style="font-size:16px;color:var(--muted);font-weight:700">
+              Ruta <span id="dash-ruta" style="color:#9CA3AF"></span>
+            </span>
+          </div>
+          <div class="big" id="kpi-presupuesto">Q0.00</div>
+          <div class="progress">
+            <div id="progress-bar" style="width:0%"></div>
+          </div>
+          <div class="subrow kpi-main-row">
+            <div class="kpi-block">
+              <span class="kpi-label">Total vendido</span>
+              <span class="kpi-value" id="kpi-vendido">Q0.00</span>
+            </div>
+            <div class="kpi-block" style="text-align:right;align-items:flex-end">
+              <span class="kpi-label">Faltante</span>
+              <span class="kpi-value" id="kpi-falta">Q0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-compact">
+          <div class="card-head"><h3>Indicadores Generales</h3></div>
+          <div class="subrow">
+            <div>
+              <div class="muted">Avance general</div>
+              <div class="big" id="kpi-global-avance">0.0%</div>
+            </div>
+            <div style="text-align:right">
+              <div class="muted">Proyección cierre</div>
+              <div class="big" id="kpi-global-proy">Q0.00</div>
+            </div>
+          </div>
+          <div class="muted" id="coach-msg">Aún lejos, impulsa ventas</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Ventas con Congelador</h3>
+            <span class="pill"><span id="kpi-vcc-clientes">0</span> clientes</span>
+          </div>
+          <div class="big" id="kpi-vcc">Q0.00</div>
+          <div class="muted">
+            Avance vs <span id="kpi-vcc-presupuesto-label">Q0.00</span>:
+            <strong id="kpi-vcc-avance">0%</strong>
+          </div>
+          <div class="muted">Proyección cierre: <strong id="kpi-vcc-proy">Q0.00</strong></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Ventas sin Congelador</h3>
+            <span class="pill"><span id="kpi-vsc-clientes">0</span> clientes</span>
+          </div>
+          <div class="big" id="kpi-vsc">Q0.00</div>
+          <div class="muted">
+            Avance vs <span id="kpi-vsc-meta-label">Q0.00</span>:
+            <strong id="kpi-vsc-avance">0%</strong>
+          </div>
+          <div class="muted">Proyección cierre: <strong id="kpi-vsc-proy">Q0.00</strong></div>
+        </div>
+      </section>
+
+      <!-- VENTAS -->
+      <section id="ventas" role="tabpanel">
+        <div class="card">
+          <div class="card-head"><h3>Registrar venta</h3></div>
+          <div class="row">
+            <div>
+              <label>Tipo de cliente</label>
+              <select id="venta-tipo" class="ios-select">
+                <option value="congelador">Con congelador</option>
+                <option value="sin">Sin congelador</option>
+              </select>
+            </div>
+            <div>
+              <label>Cliente</label>
+              <input id="cliente-buscar" style="display:none;"/>
+              <select id="venta-cliente" class="ios-select"></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div>
+              <label>Monto (Q)</label>
+              <input id="venta-monto" type="number" inputmode="decimal" placeholder="0.00"/>
+            </div>
+          </div>
+          <div class="toolbar ventas-toolbar">
+            <button class="btn primary" id="add-venta">Agregar venta</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Historial de ventas</h3></div>
+          <table id="tabla-ventas">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Cliente</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section id="clientes" role="tabpanel">
+        <div class="card">
+          <div class="card-head"><h3>Crear cliente</h3></div>
+          <div class="row">
+            <div>
+              <label>Nombre del negocio</label>
+              <input id="cliente-nombre" placeholder="Ej. Tienda Emanuel"/>
+            </div>
+            <div>
+              <label>Tipo</label>
+              <select id="cliente-tipo" class="ios-select">
+                <option value="congelador">Con congelador</option>
+                <option value="sin">Sin congelador</option>
+              </select>
+            </div>
+          </div>
+          <div class="toolbar" style="justify-content:space-between">
+            <button class="btn primary" id="btn-add-cliente">Agregar cliente</button>
+          </div>
+          <div class="collapsible">
+            <button class="btn" id="toggle-db">Mostrar/Ocultar base de datos</button>
+            <div id="db-list" style="display:none;margin-top:8px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIG -->
+      <section id="config" role="tabpanel">
+        <div class="card">
+          <div class="card-head"><h3>Periodo y parámetros</h3></div>
+          <div class="row">
+            <div>
+              <label>Mes / Año</label>
+              <div style="display:flex;gap:8px">
+                <select id="cfg-mes" class="ios-select" style="flex:1"></select>
+                <select id="cfg-anio" class="ios-select" style="flex:1"></select>
+              </div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Ruta</label>
+              <input id="cfg-ruta" placeholder="17029"/>
+            </div>
+            <div>
+              <label>Días hábiles</label>
+              <input id="cfg-dias" type="number" value="26"/>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Presupuesto general (Q)</label>
+              <input id="cfg-presupuesto" type="number" inputmode="decimal" placeholder="0.00"/>
+            </div>
+            <div>
+              <label>Ventas sin congelador (Q)</label>
+              <input id="cfg-vsc" type="number" value="400" inputmode="decimal"/>
+            </div>
+          </div>
+          <div class="toolbar">
+            <button class="btn primary" id="btn-guardar">GUARDAR</button>
+            <button class="btn danger" id="btn-reset">REINICIAR</button>
+            <button class="btn btn-theme" id="btn-themes" style="margin-left:auto" aria-label="Temas de la app">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 19l3.5-0.5L18 9l-3-3L5.5 15.5 5 19z"/>
+                <path d="M14 6l3 3"/>
+              </svg>
+              <span>Temas</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL MONTHLY METRICS -->
+  <div class="modal" id="modal-metrics">
+    <div class="modal-card">
+      <div class="mm-header">
+        <div>
+          <div class="mm-title">Monthly Metrics</div>
+          <div class="mm-sub" id="mm-route">Ruta 17029</div>
+        </div>
+        <span class="mm-badge" id="mm-month-label">Diciembre 2025</span>
+      </div>
+      <div class="mm-section">
+        <div class="mm-kpi-row">
+          <div>
+            <div class="mm-label">Mes actual · vendido</div>
+            <div class="mm-value" id="mm-sold">Q0.00</div>
+          </div>
+          <div style="text-align:right">
+            <div class="mm-label">Meta mensual</div>
+            <div class="mm-value" id="mm-budget">Q0.00</div>
+            <div class="mm-small">Faltante: <span id="mm-faltante">Q0.00</span></div>
+          </div>
+        </div>
+        <div class="mm-badges-row">
+          <span class="mm-tag">Avance: <span id="mm-avance">0.0%</span></span>
+          <span class="mm-tag">Vs. mes anterior: <span id="mm-vs-prev">0.0%</span></span>
+        </div>
+        <p class="mm-msg" id="mm-msg">Sin datos suficientes aún.</p>
+      </div>
+      <div class="mm-section">
+        <div class="mm-section-title">Tendencia últimos 6 meses</div>
+        <ul class="mm-trend-list" id="mm-trend-list"></ul>
+      </div>
+      <div class="toolbar" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn" id="metrics-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR VENTA -->
+  <div class="modal" id="modal-edit">
+    <div class="modal-card">
+      <h3>Editar venta</h3>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Monto (Q)</label>
+          <input id="edit-monto" type="number" inputmode="decimal" />
+        </div>
+        <div>
+          <label>Fecha</label>
+          <input id="edit-fecha" type="date" />
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="edit-cancel">Cancelar</button>
+        <button class="btn primary" id="edit-save">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TEMAS -->
+  <div class="modal" id="modal-themes">
+    <div class="modal-card">
+      <h3>Temas de la app</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px;margin-bottom:10px">
+        Elige el estilo visual que prefieras. Se aplicará en todas las ventanas.
+      </p>
+      <div class="theme-grid">
+        <button class="theme-option" data-theme="original" type="button">
+          <span class="theme-title">Minimal Claro</span>
+          <span class="theme-sub">Tema original</span>
+          <div class="theme-dots">
+            <span class="theme-dot" style="background:#F2F2F7"></span>
+            <span class="theme-dot" style="background:#FFFFFF"></span>
+            <span class="theme-dot" style="background:#2C6E7F"></span>
+          </div>
+        </button>
+        <button class="theme-option" data-theme="rosa" type="button">
+          <span class="theme-title">Rosa Porcelana</span>
+          <span class="theme-sub">Femenino suave</span>
+          <div class="theme-dots">
+            <span class="theme-dot" style="background:#FDF7FB"></span>
+            <span class="theme-dot" style="background:#FFFFFF"></span>
+            <span class="theme-dot" style="background:#E8A6C9"></span>
+          </div>
+        </button>
+        <button class="theme-option" data-theme="lavanda" type="button">
+          <span class="theme-title">Lavanda Pro</span>
+          <span class="theme-sub">Suave y premium</span>
+          <div class="theme-dots">
+            <span class="theme-dot" style="background:#F7F4FF"></span>
+            <span class="theme-dot" style="background:#FFFFFF"></span>
+            <span class="theme-dot" style="background:#A78BFA"></span>
+          </div>
+        </button>
+        <button class="theme-option" data-theme="azul" type="button">
+          <span class="theme-title">Azul Ejecutivo</span>
+          <span class="theme-sub">Corporativo</span>
+          <div class="theme-dots">
+            <span class="theme-dot" style="background:#EEF3F8"></span>
+            <span class="theme-dot" style="background:#FFFFFF"></span>
+            <span class="theme-dot" style="background:#3B82F6"></span>
+          </div>
+        </button>
+        <button class="theme-option" data-theme="verde" type="button">
+          <span class="theme-title">Verde Sage</span>
+          <span class="theme-sub">Calm & focus</span>
+          <div class="theme-dots">
+            <span class="theme-dot" style="background:#F5F8F6"></span>
+            <span class="theme-dot" style="background:#FFFFFF"></span>
+            <span class="theme-dot" style="background:#6AA785"></span>
+          </div>
+        </button>
+      </div>
+      <div class="toolbar" style="margin-top:12px;justify-content:flex-end">
+        <button class="btn" id="themes-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Service worker (opcional)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () =>
+        navigator.serviceWorker.register('./sw.js').catch(() => {})
+      );
+    }
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const todayStr = () => new Date().toISOString().slice(0, 10);
+
+    const Q = n => new Intl.NumberFormat('es-GT', {
+      style:'currency',
+      currency:'GTQ',
+      minimumFractionDigits:2
+    }).format(n || 0);
+
+    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    const KEY_CFG = 's360_cfg';
+    const KEY_CLIENTS = 's360_clients';
+    const KEY_SALES = 's360_sales';
+    const KEY_THEME = 's360_theme';
+
+    const THEMES = {
+      original:{ bg:'#F2F2F7', surface:'#FFFFFF', text:'#0A0A0A', brand:'#2C6E7F' },
+      rosa:{ bg:'#FDF7FB', surface:'#FFFFFF', text:'#3D2E40', brand:'#E8A6C9' },
+      lavanda:{ bg:'#F7F4FF', surface:'#FFFFFF', text:'#2A2448', brand:'#A78BFA' },
+      azul:{ bg:'#EEF3F8', surface:'#FFFFFF', text:'#0A1A2A', brand:'#3B82F6' },
+      verde:{ bg:'#F5F8F6', surface:'#FFFFFF', text:'#21322D', brand:'#6AA785' }
+    };
+
+    function save(k,v){
+      localStorage.setItem(k, JSON.stringify(v));
+    }
+    function load(k){
+      try{return JSON.parse(localStorage.getItem(k));}
+      catch{return null;}
+    }
+
+    function applyTheme(name){
+      const t = THEMES[name] || THEMES.original;
+      const root = document.documentElement;
+      root.style.setProperty('--bg', t.bg);
+      root.style.setProperty('--surface', t.surface);
+      root.style.setProperty('--text', t.text);
+      root.style.setProperty('--brand', t.brand);
+      try{ localStorage.setItem(KEY_THEME, name); } catch(e){}
+    }
+
+    function initThemesUI(currentName){
+      const options = $$('.theme-option');
+      options.forEach(btn => {
+        const name = btn.dataset.theme;
+        if(!name) return;
+        btn.classList.toggle('active', name === currentName);
+        btn.onclick = () => {
+          applyTheme(name);
+          options.forEach(o => o.classList.toggle('active', o === btn));
+        };
+      });
+    }
+
+    const uid = () => (self.crypto && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+
+    const DEFAULT_DB = {
+      "17029":{
+        "congelador":[
+          "Caseta Azul (Ixcanal)",
+          "Super 24 Sanarate Centro",
+          "Tienda Norma (Ixcanal)",
+          "Tienda Mónica",
+          "Tienda Helados Flor",
+          "Tienda y Librería Compu Game",
+          "Tienda Marissa 2",
+          "Tienda Magaly",
+          "Tienda Marissa",
+          "Super 24 Minerva",
+          "Super 24 El Rancho",
+          "Librería AMC"
+        ],
+        "sin":[
+          "Variedades Génesis",
+          "Comedor Mary",
+          "Tienda Yanira",
+          "H&S;",
+          "Tienda Escobar",
+          "Tienda San José",
+          "Tienda Sanic"
+        ]
+      },
+      "17030":{
+        "congelador":["Super 24 Conacaston Sanarate","Super 24 El Rancho 3"],
+        "sin":["Internet Velasquez","Tienda Kleidy","Negocios Estrada","CR GYM"]
+      },
+      "17031":{ "congelador":[], "sin":[] },
+      "17032":{ "congelador":[], "sin":[] },
+      "17033":{ "congelador":[], "sin":[] },
+      "17034":{ "congelador":[], "sin":[] },
+      "17035":{ "congelador":[], "sin":[] }
+    };
+
+    let cfg = load(KEY_CFG) || ((d)=>({
+      mes:d.getMonth()+1,
+      anio:d.getFullYear(),
+      ruta:'17029',
+      dias:26,
+      presupuesto:0,
+      vscMeta:400,
+      syncUrl:'',
+      token:''
+    }))(new Date());
+
+    let db = load(KEY_CLIENTS) || DEFAULT_DB;
+    let sales = load(KEY_SALES) || [];
+
+    const initialTheme = (typeof localStorage !== 'undefined' && localStorage.getItem(KEY_THEME)) || 'original';
+    applyTheme(initialTheme);
+
+    function initTabs(){
+      $$('.tab').forEach(btn => {
+        btn.onclick = () => {
+          $$('.tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const id = btn.dataset.tab;
+          $$('main section').forEach(s => s.classList.remove('active'));
+          const sec = document.getElementById(id);
+          if(sec) sec.classList.add('active');
+          if(id === 'ventas') buildClientSelects();
+          if(id === 'clientes') renderDBList();
+        };
+      });
+    }
+
+    function initConfigSelectors(){
+      const m = $('#cfg-mes');
+      const a = $('#cfg-anio');
+      if(m){
+        m.innerHTML = MONTHS.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
+        m.value = cfg.mes;
+      }
+      if(a){
+        a.innerHTML = Array.from({length:6},(_,k)=>cfg.anio-1+k)
+          .map(y=>`<option value="${y}">${y}</option>`).join('');
+        a.value = cfg.anio;
+      }
+      if($('#cfg-ruta')) $('#cfg-ruta').value = cfg.ruta;
+      if($('#cfg-dias')) $('#cfg-dias').value = cfg.dias;
+      if($('#cfg-presupuesto')) $('#cfg-presupuesto').value = cfg.presupuesto;
+      if($('#cfg-vsc')) $('#cfg-vsc').value = cfg.vscMeta;
+
+      if($('#btn-guardar')) $('#btn-guardar').onclick = () => {
+        cfg.mes = +m.value;
+        cfg.anio = +a.value;
+        cfg.ruta = $('#cfg-ruta').value.trim() || cfg.ruta;
+        cfg.dias = Math.max(1, +$('#cfg-dias').value || 26);
+        cfg.presupuesto = Math.max(0, +$('#cfg-presupuesto').value || 0);
+        const vscEl = $('#cfg-vsc');
+        cfg.vscMeta = vscEl ? Math.max(0, +vscEl.value || 0) : cfg.vscMeta;
+        save(KEY_CFG, cfg);
+        renderAll();
+        alert('Configuración guardada');
+      };
+
+      if($('#btn-reset')) $('#btn-reset').onclick = () => {
+        if(confirm('Esto borrará todas las ventas del mes actual. ¿Continuar?')){
+          sales = sales.filter(v => !(v.ruta === cfg.ruta && v.anio === cfg.anio && v.mes === cfg.mes));
+          save(KEY_SALES, sales);
+          renderAll();
+          alert('Mes reiniciado.');
+        }
+      };
+    }
+
+    // CLIENTES select
+    function buildClientSelects(){
+      const route = db[cfg.ruta] || {congelador:[], sin:[]};
+      const tipoEl = $('#venta-tipo');
+      const cliEl = $('#venta-cliente');
+      const searchEl = $('#cliente-buscar');
+      if(!tipoEl || !cliEl) return;
+      const tipo = tipoEl.value || 'congelador';
+      const baseList = tipo === 'congelador' ? route.congelador : route.sin;
+      const filtro = (searchEl && searchEl.value || '').toLowerCase();
+      const list = baseList.filter(x => x.toLowerCase().includes(filtro));
+      cliEl.innerHTML = list.map(n => `<option>${n}</option>`).join('');
+    }
+
+    document.addEventListener('input', e => {
+      if(e.target && e.target.id === 'cliente-buscar') buildClientSelects();
     });
-    if (!resp.ok) return false;
-    const data = await resp.json().catch(() => null);
-    if (data && data.ok === false) return false;
-    return true;
-  } catch (e) {
-    console.error("Error enviando venta:", e);
-    return false;
-  }
-}
+
+    if($('#venta-tipo')) $('#venta-tipo').addEventListener('change', buildClientSelects);
+
+    if($('#add-venta')) $('#add-venta').onclick = () =>
+      addVenta($('#venta-tipo').value, $('#venta-cliente').value, +$('#venta-monto').value || 0);
+
+    async function addVenta(tipo,cliente,monto){
+      if(!cliente){
+        alert('Selecciona un cliente.');
+        return;
+      }
+      if(!(monto > 0)){
+        alert('Ingresa un monto válido.');
+        return;
+      }
+      const v = {
+        id:uid(),
+        fecha:todayStr(),
+        tipo,
+        cliente,
+        monto:+monto,
+        ruta:cfg.ruta,
+        mes:cfg.mes,
+        anio:cfg.anio
+      };
+      sales.push(v);
+      save(KEY_SALES, sales);
+      if($('#venta-monto')) $('#venta-monto').value = '';
+      renderAll();
+
+      if(cfg.syncUrl){
+        try{
+          await fetch(cfg.syncUrl, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              id:v.id,
+              fecha:v.fecha,
+              tipo:v.tipo,
+              cliente:v.cliente,
+              monto:v.monto,
+              ruta:v.ruta,
+              mes:v.mes,
+              anio:v.anio,
+              token:cfg.token || ''
+            })
+          });
+        }catch(e){
+          // fallo silencioso
+        }
+      }
+    }
+
+    function renderVentasTable(){
+      const tbody = $('#tabla-ventas tbody');
+      if(!tbody) return;
+      const list = currentSales();
+      tbody.innerHTML = list.map(v => `
+        <tr>
+          <td>${v.fecha}</td>
+          <td>${v.tipo === 'congelador' ? 'Con congelador' : 'Sin congelador'}</td>
+          <td>${escapeHtml(v.cliente)}</td>
+          <td>${Q(v.monto)}</td>
+          <td>
+            <button class="btn" data-edit="${v.id}">Editar</button>
+            <button class="btn danger" data-del="${v.id}">Borrar</button>
+          </td>
+        </tr>`).join('');
+      tbody.querySelectorAll('button[data-edit]')
+        .forEach(b => b.onclick = () => openEdit(b.dataset.edit));
+      tbody.querySelectorAll('button[data-del]')
+        .forEach(b => b.onclick = () => delVenta(b.dataset.del));
+    }
+
+    function openEdit(id){
+      const v = sales.find(x => x.id === id);
+      if(!v) return;
+      const m = $('#modal-edit');
+      document.body.classList.add('modal-open');
+      m.classList.add('active');
+      $('#edit-monto').value = v.monto;
+      $('#edit-fecha').value = v.fecha;
+      $('#edit-save').onclick = () => {
+        const nuevo = +$('#edit-monto').value || 0;
+        if(!(nuevo > 0)) return alert('Monto inválido');
+        const f = $('#edit-fecha').value || todayStr();
+        v.monto = nuevo;
+        v.fecha = f;
+        save(KEY_SALES, sales);
+        m.classList.remove('active');
+        document.body.classList.remove('modal-open');
+        renderAll();
+      };
+      $('#edit-cancel').onclick = () => {
+        m.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      };
+    }
+
+    function delVenta(id){
+      if(!confirm('¿Eliminar esta venta?')) return;
+      sales = sales.filter(v => v.id !== id);
+      save(KEY_SALES, sales);
+      renderAll();
+    }
+
+    function currentSales(){
+      return sales
+        .filter(v => v.ruta === cfg.ruta && v.mes === cfg.mes && v.anio === cfg.anio)
+        .sort((a,b) => b.fecha.localeCompare(a.fecha));
+    }
+
+    if($('#btn-add-cliente')){
+      $('#btn-add-cliente').onclick = () => {
+        const nombre = $('#cliente-nombre').value.trim();
+        const tipo = $('#cliente-tipo').value;
+        if(!nombre) return alert('Escribe el nombre del negocio');
+        if(!db[cfg.ruta]) db[cfg.ruta] = {congelador:[], sin:[]};
+        const arr = tipo === 'congelador' ? db[cfg.ruta].congelador : db[cfg.ruta].sin;
+        arr.push(nombre);
+        save(KEY_CLIENTS, db);
+        $('#cliente-nombre').value = '';
+        buildClientSelects();
+        renderDBList();
+        alert('Cliente agregado a la ruta ' + cfg.ruta);
+      };
+    }
+
+    if($('#toggle-db')){
+      $('#toggle-db').onclick = () => {
+        const el = $('#db-list');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        if(el.style.display === 'block') renderDBList();
+      };
+    }
+
+    function renderDBList(){
+      const wrap = $('#db-list');
+      if(!wrap) return;
+      const route = db[cfg.ruta] || {congelador:[], sin:[]};
+      wrap.innerHTML = `
+        <div class="subrow">
+          <span class="muted">Ruta <strong>${escapeHtml(cfg.ruta)}</strong></span>
+          <span class="pill">${route.congelador.length} con · ${route.sin.length} sin</span>
+        </div>
+        <div style="display:grid;gap:8px;margin-top:8px">
+          <div>
+            <h3>Listado A (congelador)</h3>
+            <ul style="margin:6px 0 0 16px">
+              ${route.congelador.map(c => `<li>${escapeHtml(c)}</li>`).join('') || '<li><em>Vacío</em></li>'}
+            </ul>
+          </div>
+          <div>
+            <h3>Listado B (sin congelador)</h3>
+            <ul style="margin:6px 0 0 16px">
+              ${route.sin.map(c => `<li>${escapeHtml(c)}</li>`).join('') || '<li><em>Vacío</em></li>'}
+            </ul>
+          </div>
+        </div>`;
+    }
+
+    function renderDashboard(){
+      const list = currentSales();
+      const total = sum(list);
+      const vcc = sum(list.filter(v => v.tipo === 'congelador'));
+      const vsc = sum(list.filter(v => v.tipo === 'sin'));
+      const clVcc = new Set(list.filter(v => v.tipo === 'congelador').map(v => v.cliente)).size;
+      const clVsc = new Set(list.filter(v => v.tipo === 'sin').map(v => v.cliente)).size;
+
+      setText('#kpi-presupuesto', Q(cfg.presupuesto));
+      setText('#dash-ruta', cfg.ruta);
+      setText('#kpi-vendido', Q(total));
+      const falta = Math.max(0, cfg.presupuesto - total);
+      setText('#kpi-falta', Q(falta));
+
+      const avance = cfg.presupuesto > 0 ? (total / cfg.presupuesto * 100) : 0;
+      const pb = $('#progress-bar');
+      if(pb){
+        pb.style.width = Math.min(100, avance).toFixed(1) + '%';
+        pb.style.background = avance >= 100 ? 'var(--ok)' :
+                              (avance >= 60 ? 'var(--warn)' : 'var(--danger)');
+      }
+
+      setText('#kpi-global-avance', avance.toFixed(1) + '%');
+      const hoy = new Date();
+      const diasTrans = Math.max(1, Math.min(cfg.dias, hoy.getDate()));
+      const promDia = total / diasTrans;
+      const proy = Math.round(promDia * cfg.dias * 100) / 100;
+      setText('#kpi-global-proy', Q(proy));
+      setText('#coach-msg',
+        avance >= 100 ? '¡Meta cumplida! Buen trabajo' :
+        avance >= 60 ? '¡Casi! Mantén el ritmo' :
+        'Aún lejos, impulsa ventas'
+      );
+
+      setText('#kpi-vcc', Q(vcc));
+      setText('#kpi-vcc-clientes', clVcc);
+      const avVcc = cfg.presupuesto ? (vcc / cfg.presupuesto * 100) : 0;
+      setText('#kpi-vcc-avance', avVcc.toFixed(1) + '%');
+      setText('#kpi-vcc-presupuesto-label', Q(cfg.presupuesto));
+      setText('#kpi-vcc-proy', Q(Math.round((vcc / diasTrans * cfg.dias)*100)/100));
+
+      setText('#kpi-vsc', Q(vsc));
+      setText('#kpi-vsc-clientes', clVsc);
+      const avVsc = cfg.vscMeta > 0 ? (vsc / cfg.vscMeta * 100) : 0;
+      setText('#kpi-vsc-avance', avVsc.toFixed(1) + '%');
+      setText('#kpi-vsc-meta-label', Q(cfg.vscMeta));
+      setText('#kpi-vsc-proy', Q(Math.round((vsc / diasTrans * cfg.dias)*100)/100));
+    }
+
+    function setText(sel,val){
+      const el = document.querySelector(sel);
+      if(el) el.textContent = val;
+    }
+
+    function sum(arr){
+      return arr.reduce((a,b)=>a + (+b.monto || 0), 0);
+    }
+
+    function escapeHtml(s){
+      return (s + '').replace(/[&<>"']/g, m => ({
+        '&':'&amp;',
+        '<':'&lt;',
+        '"':'&quot;',
+        "'":'&#39;',
+        '>':'&gt;'
+      }[m] || m));
+    }
+
+    // Helpers para Monthly Metrics
+    function totalForMonth(route, mes, anio){
+      return sum(sales.filter(v => v.ruta === route && v.mes === mes && v.anio === anio));
+    }
+
+    function monthYearOffset(mes, anio, offset){
+      const d = new Date(anio, mes-1+offset, 1);
+      return { mes: d.getMonth()+1, anio: d.getFullYear() };
+    }
+
+    function renderMetricsModal(){
+      const route = cfg.ruta;
+      const mes = cfg.mes;
+      const anio = cfg.anio;
+      const currentTotal = totalForMonth(route, mes, anio);
+      const budget = cfg.presupuesto || 0;
+      const avance = budget > 0 ? (currentTotal / budget * 100) : 0;
+      const faltante = Math.max(0, budget - currentTotal);
+
+      const prev = monthYearOffset(mes, anio, -1);
+      const prevTotal = totalForMonth(route, prev.mes, prev.anio);
+      let vsPrev = 0;
+      if(prevTotal > 0){
+        vsPrev = ((currentTotal - prevTotal) / prevTotal) * 100;
+      }
+
+      setText('#mm-route', 'Ruta ' + route);
+      setText('#mm-month-label', MONTHS[mes-1] + ' ' + anio);
+      setText('#mm-sold', Q(currentTotal));
+      setText('#mm-budget', Q(budget));
+      setText('#mm-faltante', Q(faltante));
+      setText('#mm-avance', avance.toFixed(1) + '%');
+      setText('#mm-vs-prev', (vsPrev >= 0 ? '+' : '') + vsPrev.toFixed(1) + '%');
+
+      let msg = 'Sin datos suficientes aún.';
+      if(budget > 0){
+        if(avance >= 100) msg = 'Cierre excelente, superaste la meta.';
+        else if(avance >= 95) msg = 'Cierre sólido, casi alcanzas el 100%.';
+        else if(avance >= 80) msg = 'Buen avance, puedes impulsar algunos clientes clave.';
+        else msg = 'Meta lejana, revisa clientes clave para impulsar ventas.';
+      }
+      setText('#mm-msg', msg);
+
+      const trendList = $('#mm-trend-list');
+      if(trendList){
+        const base = new Date(anio, mes-1, 1);
+        const rows = [];
+        for(let offset=-5; offset<=0; offset++){
+          const d = new Date(base.getFullYear(), base.getMonth()+offset, 1);
+          const mVal = d.getMonth()+1;
+          const yVal = d.getFullYear();
+          const total = totalForMonth(route, mVal, yVal);
+          rows.push({
+            label: MONTHS_SHORT[mVal-1] + ' ' + String(yVal).slice(-2),
+            total
+          });
+        }
+        trendList.innerHTML = rows.map(r => `
+          <li class="mm-trend-row">
+            <span>${r.label}</span>
+            <span>${Q(r.total)}</span>
+          </li>`).join('');
+      }
+    }
+
+    function renderAll(){
+      buildClientSelects();
+      renderVentasTable();
+      renderDashboard();
+    }
+
+    // ===== Inicializar todo =====
+    initTabs();
+    initConfigSelectors();
+
+    if($('#btn-themes')){
+      $('#btn-themes').onclick = () => {
+        const m = $('#modal-themes');
+        if(m){
+          m.classList.add('active');
+          document.body.classList.add('modal-open');
+        }
+      };
+    }
+    if($('#themes-close')){
+      $('#themes-close').onclick = () => {
+        const m = $('#modal-themes');
+        if(m) m.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      };
+    }
+
+    if($('#btn-metrics')){
+      $('#btn-metrics').onclick = () => {
+        renderMetricsModal();
+        const m = $('#modal-metrics');
+        if(m){
+          m.classList.add('active');
+          document.body.classList.add('modal-open');
+        }
+      };
+    }
+    if($('#metrics-close')){
+      $('#metrics-close').onclick = () => {
+        const m = $('#modal-metrics');
+        if(m) m.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      };
+    }
+
+    initThemesUI(initialTheme);
+    renderAll();
+  </script>
+</body>
+</html>
