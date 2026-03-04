@@ -10,17 +10,13 @@
     .card{background:#121b2f; border:1px solid #1d2a48; border-radius:14px; padding:16px; margin:12px 0;}
     .row{display:flex; gap:12px; flex-wrap:wrap;}
     .row > *{flex:1;}
-    input, select, button{width:100%; padding:12px; border-radius:10px; border:1px solid #26365f; background:#0e1730; color:#e7eefc;}
+    input, button{width:100%; padding:12px; border-radius:10px; border:1px solid #26365f; background:#0e1730; color:#e7eefc;}
     button{background:#2b63ff; border:none; font-weight:700; cursor:pointer;}
     button.secondary{background:#223055;}
-    button.danger{background:#d23b3b;}
     button:disabled{opacity:.55; cursor:not-allowed;}
     .muted{color:#a9b7d6; font-size:14px;}
     .big{font-size:28px; font-weight:800;}
     .pill{display:inline-block; padding:5px 10px; border-radius:999px; font-size:12px; border:1px solid #2a3a66; background:#0e1730;}
-    .ok{border-color:#2bb673;}
-    .warn{border-color:#ffbe3b;}
-    .bad{border-color:#ff5b5b;}
     table{width:100%; border-collapse:collapse; margin-top:10px;}
     th,td{padding:10px; border-bottom:1px solid #1d2a48; text-align:left; font-size:14px;}
     th{color:#bcd0ff; font-weight:700;}
@@ -29,6 +25,7 @@
     .toast{padding:10px 12px; border-radius:10px; background:#0e1730; border:1px solid #26365f; margin-top:10px;}
     .flex{display:flex; gap:10px; align-items:center;}
     .sp{justify-content:space-between;}
+    code{color:#cfe1ff;}
   </style>
 </head>
 <body>
@@ -36,7 +33,8 @@
     <div class="topbar card">
       <div>
         <div style="font-weight:900; font-size:18px;">Billetera de Rutas</div>
-        <div class="muted">Ver saldo, enviar y aceptar transferencias (PENDING → ACCEPTED).</div>
+        <div class="muted">Conectado a Apps Script (saldo / transferir / pendientes / aceptar).</div>
+        <div class="muted" style="margin-top:6px;">API: <code id="apiTxt"></code></div>
       </div>
       <div class="flex">
         <div class="pill" id="sessionPill">Sin sesión</div>
@@ -58,11 +56,11 @@
         </div>
       </div>
       <div class="muted" style="margin-top:8px;">
-        Tip: esta pantalla es simple; si luego quieres PIN/contraseña por ruta, lo agregamos.
+        Esta app consulta tu saldo y te deja crear/aceptar transferencias.
       </div>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- APP -->
     <div id="app" style="display:none;">
       <!-- SALDO -->
       <div class="card">
@@ -80,7 +78,7 @@
 
       <!-- ENVIAR -->
       <div class="card">
-        <div style="font-weight:800; margin-bottom:8px;">Enviar transferencia (queda PENDING)</div>
+        <div style="font-weight:800; margin-bottom:8px;">Enviar transferencia</div>
         <div class="row">
           <div>
             <label class="muted">Enviar a RutaID</label>
@@ -96,7 +94,7 @@
           </div>
         </div>
         <div class="muted" style="margin-top:8px;">
-          Nota: El saldo NO se mueve hasta que la ruta destino acepte.
+          Se registra en la hoja como <b>PENDING</b> (pendiente). Luego la ruta destino la acepta.
         </div>
       </div>
 
@@ -104,8 +102,8 @@
       <div class="card">
         <div class="flex sp">
           <div>
-            <div style="font-weight:800;">Transferencias pendientes para mí</div>
-            <div class="muted">Solo las que tienen <b>to = tu RutaID</b> y status PENDING.</div>
+            <div style="font-weight:800;">Pendientes para mí</div>
+            <div class="muted">Solo las que llegan a tu ruta y están PENDING.</div>
           </div>
           <div style="max-width:260px;">
             <button class="secondary" id="btnLoadPending">Cargar pendientes</button>
@@ -119,54 +117,12 @@
               <tr>
                 <th>Fecha</th>
                 <th>De</th>
-                <th>Para</th>
                 <th class="right">Monto</th>
-                <th>Status</th>
-                <th class="right">Acciones</th>
+                <th>ID</th>
+                <th class="right">Acción</th>
               </tr>
             </thead>
             <tbody id="pendingBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- HISTORIAL -->
-      <div class="card">
-        <div class="flex sp">
-          <div>
-            <div style="font-weight:800;">Historial (mi ruta)</div>
-            <div class="muted">Incluye enviados y recibidos.</div>
-          </div>
-          <div class="row" style="max-width:460px;">
-            <div>
-              <select id="selStatus">
-                <option value="">Todos</option>
-                <option value="PENDING">PENDING</option>
-                <option value="ACCEPTED">ACCEPTED</option>
-                <option value="REJECTED">REJECTED</option>
-                <option value="FAILED">FAILED</option>
-              </select>
-            </div>
-            <div>
-              <button class="secondary" id="btnLoadHistory">Cargar historial</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="histEmpty" class="muted" style="margin-top:10px; display:none;">Sin movimientos.</div>
-        <div style="overflow:auto;">
-          <table id="histTable" style="display:none;">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>De</th>
-                <th>Para</th>
-                <th class="right">Monto</th>
-                <th>Status</th>
-                <th>ID</th>
-              </tr>
-            </thead>
-            <tbody id="histBody"></tbody>
           </table>
         </div>
       </div>
@@ -176,10 +132,11 @@
   </div>
 
 <script>
-/*********** CONFIGURA ESTO ***********/
-const API_URL = "PEGA_AQUI_TU_URL_DEL_WEB_APP"; // ej: https://script.google.com/macros/s/XXXXX/exec
-const TOKEN  = "CAMBIA_ESTE_TOKEN_SUPER_SECRETO";
-/*************************************/
+/*********** TU LINK REAL ***********/
+const API_URL = "https://script.google.com/macros/s/AKfycbxnNRbfGSnYICEfWzp-jR-z74j98QosUjp2xtWbVdofhOn7VgQXwXvYY2xvIuQ5cWRS/exec";
+/************************************/
+
+document.getElementById("apiTxt").textContent = API_URL;
 
 let sessionRuta = null;
 
@@ -198,7 +155,6 @@ function setLoading(btn, isLoading){
 async function api(action, params = {}){
   const url = new URL(API_URL);
   url.searchParams.set("action", action);
-  url.searchParams.set("token", TOKEN);
   Object.entries(params).forEach(([k,v]) => {
     if (v !== undefined && v !== null && String(v).trim() !== "") {
       url.searchParams.set(k, v);
@@ -206,9 +162,15 @@ async function api(action, params = {}){
   });
 
   const res = await fetch(url.toString(), { method: "GET" });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "Error");
-  return data;
+  const txt = await res.text();
+
+  // Tu Apps Script devuelve JSON en algunos endpoints, y texto en otros.
+  // Probamos JSON, si falla devolvemos texto.
+  try {
+    return JSON.parse(txt);
+  } catch {
+    return { raw: txt };
+  }
 }
 
 function fmtMoney(n){
@@ -216,21 +178,11 @@ function fmtMoney(n){
   return x.toLocaleString("es-GT", { maximumFractionDigits: 2 });
 }
 
-function pillStatus(status){
-  const s = (status || "").toUpperCase();
-  let cls = "pill";
-  if (s === "ACCEPTED") cls += " ok";
-  else if (s === "PENDING") cls += " warn";
-  else if (s === "REJECTED" || s === "FAILED") cls += " bad";
-  return `<span class="${cls}">${s || "-"}</span>`;
+function fmtDate(v){
+  try { return new Date(v).toLocaleString("es-GT"); }
+  catch { return String(v); }
 }
 
-function fmtDate(iso){
-  try { return new Date(iso).toLocaleString("es-GT"); }
-  catch { return String(iso); }
-}
-
-/*********** UI ***********/
 function showApp(){
   document.getElementById("loginCard").style.display = "none";
   document.getElementById("app").style.display = "block";
@@ -245,11 +197,16 @@ function showLogin(){
   document.getElementById("sessionPill").textContent = "Sin sesión";
 }
 
-/*********** ACTIONS ***********/
+/*********** ACCIONES ***********/
 async function loadSaldo(){
-  const data = await api("getsaldo", { rutaId: sessionRuta });
-  document.getElementById("saldoTxt").textContent = fmtMoney(data.saldo.saldo);
-  document.getElementById("saldoMeta").textContent = `RutaID ${data.saldo.rutaId}`;
+  const data = await api("saldo", { ruta: sessionRuta });
+
+  if (!data || data.saldo === undefined) {
+    throw new Error("No pude leer saldo. Revisa que exista la ruta en la hoja 'saldo'.");
+  }
+
+  document.getElementById("saldoTxt").textContent = fmtMoney(data.saldo);
+  document.getElementById("saldoMeta").textContent = `RutaID ${data.ruta}`;
 }
 
 async function sendTransfer(){
@@ -260,123 +217,81 @@ async function sendTransfer(){
   if (to === sessionRuta) return toast("No puedes enviarte a ti mismo.");
   if (!amount || Number(amount) <= 0) return toast("Monto inválido.");
 
-  const data = await api("createtransfer", { from: sessionRuta, to, amount });
-  toast(`Transferencia creada (PENDING). ID: ${data.transfer.id}`);
+  const data = await api("transferir", { from: sessionRuta, to, amount });
+
+  if (!data || data.status !== "ok") {
+    throw new Error("No se pudo crear la transferencia.");
+  }
+
+  toast(`Transferencia creada (PENDING). ID: ${data.id}`);
   document.getElementById("inpTo").value = "";
   document.getElementById("inpAmount").value = "";
   await loadPending();
-  await loadHistory();
+  await loadSaldo(); // saldo no cambia, pero refrescamos por consistencia
 }
 
 async function loadPending(){
-  const data = await api("listtransfers", { rutaId: sessionRuta, status: "PENDING" });
-  const onlyToMe = data.transfers.filter(t => String(t.to) === String(sessionRuta) && String(t.status).toUpperCase() === "PENDING");
+  const data = await api("pendientes", { ruta: sessionRuta });
+
+  // 'pendientes' devuelve un ARRAY (no objeto)
+  const arr = Array.isArray(data) ? data : [];
 
   const table = document.getElementById("pendingTable");
   const body = document.getElementById("pendingBody");
   const empty = document.getElementById("pendingEmpty");
 
   body.innerHTML = "";
-  if (!onlyToMe.length){
+
+  if (!arr.length){
     table.style.display = "none";
     empty.style.display = "block";
     return;
   }
+
   empty.style.display = "none";
   table.style.display = "table";
 
-  for (const t of onlyToMe){
+  for (const t of arr){
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${fmtDate(t.ts)}</td>
+      <td class="muted">—</td>
       <td>${t.from}</td>
-      <td>${t.to}</td>
       <td class="right">${fmtMoney(t.amount)}</td>
-      <td>${pillStatus(t.status)}</td>
+      <td class="muted">${t.id}</td>
       <td class="right">
-        <button class="secondary" data-id="${t.id}" data-action="accept" style="width:auto; margin-right:6px;">Aceptar</button>
-        <button class="danger" data-id="${t.id}" data-action="reject" style="width:auto;">Rechazar</button>
+        <button class="secondary" data-id="${t.id}" style="width:auto;">Aceptar</button>
       </td>
     `;
     body.appendChild(tr);
   }
 }
 
-async function acceptOrReject(ev){
-  const btn = ev.target.closest("button");
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const id = btn.dataset.id;
-  if (!id) return;
+async function acceptTransfer(id){
+  const data = await api("aceptar", { id });
 
-  btn.dataset.label = btn.textContent;
-  setLoading(btn, true);
-
-  try{
-    if (action === "accept"){
-      const data = await api("accepttransfer", { id, rutaId: sessionRuta });
-      toast(`Aceptada. Se actualizaron saldos. (${data.transfer.status})`);
-      await loadSaldo();
-    } else {
-      const data = await api("rejecttransfer", { id, rutaId: sessionRuta });
-      toast(`Rechazada. (${data.transfer.status})`);
-    }
-    await loadPending();
-    await loadHistory();
-  } catch(err){
-    toast("Error: " + err.message);
-  } finally {
-    setLoading(btn, false);
+  // 'aceptar' devuelve {status:"transferencia completada"}
+  if (!data || !String(data.status || "").toLowerCase().includes("completada")) {
+    throw new Error("No se pudo aceptar.");
   }
+
+  toast("Transferencia aceptada. Saldos actualizados.");
+  await loadSaldo();
+  await loadPending();
 }
 
-async function loadHistory(){
-  const status = document.getElementById("selStatus").value;
-  const data = await api("listtransfers", { rutaId: sessionRuta, status });
-
-  const table = document.getElementById("histTable");
-  const body = document.getElementById("histBody");
-  const empty = document.getElementById("histEmpty");
-
-  body.innerHTML = "";
-  if (!data.transfers.length){
-    table.style.display = "none";
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-  table.style.display = "table";
-
-  for (const t of data.transfers){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${fmtDate(t.ts)}</td>
-      <td>${t.from}</td>
-      <td>${t.to}</td>
-      <td class="right">${fmtMoney(t.amount)}</td>
-      <td>${pillStatus(t.status)}</td>
-      <td class="muted">${t.id}</td>
-    `;
-    body.appendChild(tr);
-  }
-}
-
-/*********** EVENTS ***********/
+/*********** EVENTOS ***********/
 document.getElementById("btnLogin").addEventListener("click", async () => {
   const ruta = document.getElementById("inpRuta").value.trim();
   if (!ruta) return toast("Ingresa tu RutaID.");
   sessionRuta = ruta;
 
   try{
-    // prueba conexión
-    await api("getsaldo", { rutaId: sessionRuta });
+    await loadSaldo(); // valida conexión + ruta
     showApp();
-    await loadSaldo();
     await loadPending();
-    await loadHistory();
   } catch(err){
     sessionRuta = null;
-    toast("No pude conectar: " + err.message + ". Revisa API_URL/TOKEN y permisos del Web App.");
+    toast("Error al entrar: " + err.message);
   }
 });
 
@@ -413,15 +328,21 @@ document.getElementById("btnLoadPending").addEventListener("click", async (e) =>
   finally{ setLoading(btn, false); }
 });
 
-document.getElementById("pendingBody").addEventListener("click", acceptOrReject);
+document.getElementById("pendingBody").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!id) return;
 
-document.getElementById("btnLoadHistory").addEventListener("click", async (e) => {
-  const btn = e.target;
   btn.dataset.label = btn.textContent;
   setLoading(btn, true);
-  try{ await loadHistory(); toast("Historial cargado."); }
-  catch(err){ toast("Error: " + err.message); }
-  finally{ setLoading(btn, false); }
+  try{
+    await acceptTransfer(id);
+  } catch(err){
+    toast("Error: " + err.message);
+  } finally {
+    setLoading(btn, false);
+  }
 });
 </script>
 </body>
