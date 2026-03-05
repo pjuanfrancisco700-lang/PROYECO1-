@@ -2,348 +2,1056 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Billetera Rutas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b0c10" />
+  <title>Recursos por Ruta</title>
+
   <style>
-    body{font-family:system-ui,Arial; margin:0; background:#0b1220; color:#e7eefc;}
-    .wrap{max-width:900px; margin:0 auto; padding:18px;}
-    .card{background:#121b2f; border:1px solid #1d2a48; border-radius:14px; padding:16px; margin:12px 0;}
-    .row{display:flex; gap:12px; flex-wrap:wrap;}
-    .row > *{flex:1;}
-    input, button{width:100%; padding:12px; border-radius:10px; border:1px solid #26365f; background:#0e1730; color:#e7eefc;}
-    button{background:#2b63ff; border:none; font-weight:700; cursor:pointer;}
-    button.secondary{background:#223055;}
-    button:disabled{opacity:.55; cursor:not-allowed;}
-    .muted{color:#a9b7d6; font-size:14px;}
-    .big{font-size:28px; font-weight:800;}
-    .pill{display:inline-block; padding:5px 10px; border-radius:999px; font-size:12px; border:1px solid #2a3a66; background:#0e1730;}
-    table{width:100%; border-collapse:collapse; margin-top:10px;}
-    th,td{padding:10px; border-bottom:1px solid #1d2a48; text-align:left; font-size:14px;}
-    th{color:#bcd0ff; font-weight:700;}
-    .right{text-align:right;}
-    .topbar{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
-    .toast{padding:10px 12px; border-radius:10px; background:#0e1730; border:1px solid #26365f; margin-top:10px;}
-    .flex{display:flex; gap:10px; align-items:center;}
-    .sp{justify-content:space-between;}
-    code{color:#cfe1ff;}
+    :root{
+      --bg:#0b0c10;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.085);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.62);
+      --line:rgba(255,255,255,.10);
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+      --radius:22px;
+      --radius2:16px;
+      --pad:16px;
+      --tap:52px;
+      --ok:#2ecc71;
+      --warn:#f1c40f;
+      --bad:#ff4d4f;
+      --accent:#5aa9ff;
+      --accent2:#9a7bff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sys: -apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sys);
+      color:var(--text);
+      background:
+        radial-gradient(900px 550px at 15% -10%, rgba(90,169,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 100% 0%, rgba(154,123,255,.14), transparent 55%),
+        radial-gradient(1000px 700px at 50% 120%, rgba(46,204,113,.10), transparent 60%),
+        var(--bg);
+      overflow-x:hidden;
+    }
+
+    /* Safe areas */
+    .safe-top{ padding-top: env(safe-area-inset-top); }
+    .safe-bottom{ padding-bottom: env(safe-area-inset-bottom); }
+
+    .app{
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: linear-gradient(to bottom, rgba(11,12,16,.92), rgba(11,12,16,.55));
+      border-bottom: 1px solid var(--line);
+    }
+    .bar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 12px var(--pad);
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .title h1{
+      margin:0;
+      font-size:16px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .title .sub{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .iconbtn{
+      height:40px;
+      min-width:40px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--text);
+      box-shadow: 0 10px 18px rgba(0,0,0,.18);
+    }
+    .iconbtn:active{ transform: translateY(1px); }
+
+    .bell{
+      position:relative;
+    }
+    .badge{
+      position:absolute;
+      top:-6px;
+      right:-6px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background: var(--bad);
+      color:white;
+      font-size:11px;
+      line-height:18px;
+      text-align:center;
+      border: 2px solid rgba(11,12,16,.9);
+      display:none;
+    }
+
+    main{ padding: 14px var(--pad) 22px; flex:1; }
+    .card{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .screen{ display:none; }
+    .screen.active{ display:block; }
+
+    /* Login */
+    .loginWrap{
+      margin-top: 14vh;
+      padding: 18px;
+    }
+    .hero{
+      padding: 16px 16px 6px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .hero .logo{
+      width:52px; height:52px;
+      border-radius: 16px;
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.55), transparent 60%),
+        linear-gradient(135deg, rgba(90,169,255,.9), rgba(154,123,255,.85));
+      box-shadow: 0 18px 32px rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .hero h2{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .hero p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    .field{
+      padding: 14px 16px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .input{
+      height: var(--tap);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-size:16px;
+      padding: 0 14px;
+      outline:none;
+    }
+    .input::placeholder{ color: rgba(255,255,255,.35); }
+    .btn{
+      height: var(--tap);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: linear-gradient(135deg, rgba(90,169,255,.95), rgba(154,123,255,.9));
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing:.2px;
+      box-shadow: 0 18px 30px rgba(0,0,0,.22);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.secondary{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      box-shadow:none;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Plans list */
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .pill{
+      font-family: var(--mono);
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+    .muted{ color: var(--muted); }
+
+    .panel{
+      padding: 14px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-bottom: 14px;
+    }
+
+    .plans{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .plan{
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.055);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .planTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .planName{
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(255,255,255,.82);
+      letter-spacing:.2px;
+    }
+    .planBal{
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    .planBal small{
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .planActions{
+      display:flex;
+      gap:10px;
+    }
+    .mini{
+      flex:1;
+      height:44px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .mini.primary{
+      background: linear-gradient(135deg, rgba(90,169,255,.92), rgba(154,123,255,.88));
+      border: 1px solid rgba(255,255,255,.16);
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      left:50%;
+      transform: translateX(-50%);
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      width: min(520px, calc(100% - 28px));
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(20,22,28,.88);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+      display:none;
+      z-index: 99;
+      font-size: 13px;
+      color: rgba(255,255,255,.88);
+    }
+
+    /* Modal */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.52);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 12px;
+      z-index: 50;
+    }
+    .modal{
+      width: min(520px, 100%);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(18,20,26,.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 30px 80px rgba(0,0,0,.5);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding: 14px 16px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .modalHead strong{ font-size:14px; }
+    .modalBody{
+      padding: 12px 16px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .help{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .item{
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .itemTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .itemMeta{
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(255,255,255,.82);
+    }
+    .itemAmt{
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .itemBtns{
+      display:flex;
+      gap:10px;
+    }
+    .danger{ background: rgba(255,77,79,.14); border-color: rgba(255,77,79,.25); }
+    .ok{ background: rgba(46,204,113,.14); border-color: rgba(46,204,113,.25); }
+    .ghost{
+      height:44px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-weight: 800;
+      flex:1;
+    }
+
+    .footerBar{
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to top, rgba(11,12,16,.92), rgba(11,12,16,.40));
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .footerBtns{
+      padding: 12px var(--pad);
+      display:flex;
+      gap:10px;
+    }
+
+    /* Reduce motion (optional) */
+    @media (prefers-reduced-motion: reduce) {
+      *{ scroll-behavior:auto !important; }
+    }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <div class="topbar card">
-      <div>
-        <div style="font-weight:900; font-size:18px;">Billetera de Rutas</div>
-        <div class="muted">Conectado a Apps Script (saldo / transferir / pendientes / aceptar).</div>
-        <div class="muted" style="margin-top:6px;">API: <code id="apiTxt"></code></div>
-      </div>
-      <div class="flex">
-        <div class="pill" id="sessionPill">Sin sesión</div>
-        <button class="secondary" id="btnLogout" style="width:auto; display:none;">Salir</button>
-      </div>
-    </div>
 
-    <!-- LOGIN -->
-    <div class="card" id="loginCard">
-      <div style="font-weight:800; margin-bottom:8px;">Ingresar</div>
-      <div class="row">
-        <div>
-          <label class="muted">Tu RutaID (ej: 17034)</label>
-          <input id="inpRuta" placeholder="17034" inputmode="numeric" />
-        </div>
-        <div style="max-width:220px;">
-          <label class="muted">Acción</label>
-          <button id="btnLogin">Entrar</button>
-        </div>
-      </div>
-      <div class="muted" style="margin-top:8px;">
-        Esta app consulta tu saldo y te deja crear/aceptar transferencias.
-      </div>
-    </div>
+<body class="safe-top safe-bottom">
+  <div class="app">
 
-    <!-- APP -->
-    <div id="app" style="display:none;">
-      <!-- SALDO -->
-      <div class="card">
-        <div class="flex sp">
-          <div>
-            <div class="muted">Saldo actual</div>
-            <div class="big" id="saldoTxt">—</div>
-          </div>
-          <div style="max-width:220px;">
-            <button class="secondary" id="btnRefresh">Actualizar</button>
-          </div>
+    <header>
+      <div class="bar">
+        <div class="title">
+          <h1 id="hdrTitle">Recursos</h1>
+          <div class="sub" id="hdrSub">Conectado a Google Sheets</div>
         </div>
-        <div class="muted" id="saldoMeta"></div>
-      </div>
 
-      <!-- ENVIAR -->
-      <div class="card">
-        <div style="font-weight:800; margin-bottom:8px;">Enviar transferencia</div>
-        <div class="row">
-          <div>
-            <label class="muted">Enviar a RutaID</label>
-            <input id="inpTo" placeholder="17035" inputmode="numeric" />
-          </div>
-          <div>
-            <label class="muted">Monto</label>
-            <input id="inpAmount" placeholder="10" inputmode="decimal" />
-          </div>
-          <div style="max-width:220px;">
-            <label class="muted">&nbsp;</label>
-            <button id="btnSend">Enviar</button>
-          </div>
-        </div>
-        <div class="muted" style="margin-top:8px;">
-          Se registra en la hoja como <b>PENDING</b> (pendiente). Luego la ruta destino la acepta.
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="iconbtn bell" id="btnBell" aria-label="Notificaciones" title="Notificaciones" style="display:none;">
+            <!-- simple bell -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="badge" id="bellBadge">0</span>
+          </button>
+
+          <button class="iconbtn" id="btnLogout" aria-label="Salir" title="Salir" style="display:none;">
+            <!-- logout icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M10 17l1 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 7h5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 12H4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M6 10l-2 2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
+    </header>
 
-      <!-- PENDIENTES -->
-      <div class="card">
-        <div class="flex sp">
-          <div>
-            <div style="font-weight:800;">Pendientes para mí</div>
-            <div class="muted">Solo las que llegan a tu ruta y están PENDING.</div>
+    <main>
+      <!-- LOGIN -->
+      <section class="screen active" id="screenLogin">
+        <div class="card loginWrap">
+          <div class="hero">
+            <div class="logo"></div>
+            <h2>Ingresar ruta</h2>
+            <p>Escribe tu ID de ruta para ver disponibilidad por plan, registrar uso y transferir recursos.</p>
           </div>
-          <div style="max-width:260px;">
-            <button class="secondary" id="btnLoadPending">Cargar pendientes</button>
+          <div class="field">
+            <input class="input" inputmode="numeric" pattern="[0-9]*" id="inpRuta" placeholder="Ej: 17029" />
+            <button class="btn" id="btnEntrar">Entrar</button>
+            <button class="btn secondary" id="btnDemo" title="Solo para prueba visual (no escribe)">Demo (sin guardar)</button>
+            <div class="help">
+              Tip: Si tu Apps Script responde lento la primera vez, vuelve a intentar. Queda en caché luego.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOME -->
+      <section class="screen" id="screenHome">
+        <div class="panel">
+          <div class="row">
+            <div>
+              <div class="muted" style="font-size:12px;">Ruta</div>
+              <div style="font-size:18px; font-weight:800; letter-spacing:.2px;" id="lblRuta">—</div>
+            </div>
+            <div class="pill" id="lblPeso">PESO —%</div>
+          </div>
+          <div class="row" style="margin-top:6px;">
+            <div class="muted" style="font-size:12px;">Última actualización</div>
+            <div class="pill" id="lblUpdated">—</div>
           </div>
         </div>
 
-        <div id="pendingEmpty" class="muted" style="margin-top:10px; display:none;">No hay pendientes.</div>
-        <div style="overflow:auto;">
-          <table id="pendingTable" style="display:none;">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>De</th>
-                <th class="right">Monto</th>
-                <th>ID</th>
-                <th class="right">Acción</th>
-              </tr>
-            </thead>
-            <tbody id="pendingBody"></tbody>
-          </table>
-        </div>
-      </div>
+        <div class="plans card" style="padding: 14px;">
+          <div class="row" style="padding: 2px 2px 10px;">
+            <strong style="font-size:14px;">Planes</strong>
+            <button class="iconbtn" id="btnRefresh" aria-label="Actualizar" title="Actualizar">
+              <!-- refresh -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
 
-      <div id="toast" class="toast" style="display:none;"></div>
+          <div id="plansList" class="plans"></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="footerBar">
+      <div class="footerBtns">
+        <button class="btn secondary" id="btnTransfer" style="display:none;">Transferir</button>
+      </div>
     </div>
   </div>
 
-<script>
-/*********** TU LINK REAL ***********/
-const API_URL = "https://script.google.com/macros/s/AKfycbxnNRbfGSnYICEfWzp-jR-z74j98QosUjp2xtWbVdofhOn7VgQXwXvYY2xvIuQ5cWRS/exec";
-/************************************/
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
-document.getElementById("apiTxt").textContent = API_URL;
+  <!-- MODALS -->
+  <div class="modalBack" id="modalBack">
+    <div class="modal" id="modal">
+      <div class="modalHead">
+        <strong id="modalTitle">—</strong>
+        <button class="iconbtn" id="modalClose" aria-label="Cerrar" title="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modalBody" id="modalBody"></div>
+    </div>
+  </div>
 
-let sessionRuta = null;
+  <script>
+    /**********************
+     * CONFIG
+     **********************/
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxMhnkD2DLrH1qyX5hyT8JtI7U6AArq-r5Rfc1jCmae_iBTrEpVioyhdVYh8dKDKpmu/exec";
 
-function toast(msg){
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.style.display = "block";
-  setTimeout(()=> el.style.display="none", 4500);
-}
+    // Poll de notificaciones (ms)
+    const POLL_MS = 9000;
 
-function setLoading(btn, isLoading){
-  btn.disabled = isLoading;
-  btn.textContent = isLoading ? "Procesando..." : btn.dataset.label;
-}
+    /**********************
+     * UI STATE
+     **********************/
+    const $ = (id) => document.getElementById(id);
 
-async function api(action, params = {}){
-  const url = new URL(API_URL);
-  url.searchParams.set("action", action);
-  Object.entries(params).forEach(([k,v]) => {
-    if (v !== undefined && v !== null && String(v).trim() !== "") {
-      url.searchParams.set(k, v);
+    const state = {
+      ruta: null,
+      peso: null,
+      saldo: {},           // { plan: number }
+      pendientes: [],      // [{id, fecha, de, para, plan, cantidad, estado}]
+      lastUpdated: null,
+      pollTimer: null,
+      demo: false,
+    };
+
+    const els = {
+      hdrTitle: $("hdrTitle"),
+      hdrSub: $("hdrSub"),
+      btnBell: $("btnBell"),
+      bellBadge: $("bellBadge"),
+      btnLogout: $("btnLogout"),
+      screenLogin: $("screenLogin"),
+      screenHome: $("screenHome"),
+      inpRuta: $("inpRuta"),
+      btnEntrar: $("btnEntrar"),
+      btnDemo: $("btnDemo"),
+      lblRuta: $("lblRuta"),
+      lblPeso: $("lblPeso"),
+      lblUpdated: $("lblUpdated"),
+      plansList: $("plansList"),
+      btnRefresh: $("btnRefresh"),
+      btnTransfer: $("btnTransfer"),
+      toast: $("toast"),
+      modalBack: $("modalBack"),
+      modalTitle: $("modalTitle"),
+      modalBody: $("modalBody"),
+      modalClose: $("modalClose"),
+    };
+
+    /**********************
+     * ZOOM BLOCK (iOS)
+     **********************/
+    // Bloquea gesto de zoom (en iOS Safari)
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('gesturechange', (e) => e.preventDefault());
+    document.addEventListener('gestureend', (e) => e.preventDefault());
+
+    /**********************
+     * JSONP
+     **********************/
+    function jsonp(url, timeoutMs = 20000) {
+      return new Promise((resolve, reject) => {
+        const cb = "cb_" + Math.random().toString(36).slice(2);
+        const script = document.createElement("script");
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("Timeout JSONP"));
+        }, timeoutMs);
+
+        window[cb] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        function cleanup() {
+          clearTimeout(timer);
+          if (window[cb]) delete window[cb];
+          script.remove();
+        }
+
+        const sep = url.includes("?") ? "&" : "?";
+        script.src = url + sep + "callback=" + cb;
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Error cargando JSONP"));
+        };
+        document.body.appendChild(script);
+      });
     }
-  });
 
-  const res = await fetch(url.toString(), { method: "GET" });
-  const txt = await res.text();
+    function apiUrl(params) {
+      const u = new URL(WEBAPP_URL);
+      Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, String(v)));
+      return u.toString();
+    }
 
-  // Tu Apps Script devuelve JSON en algunos endpoints, y texto en otros.
-  // Probamos JSON, si falla devolvemos texto.
-  try {
-    return JSON.parse(txt);
-  } catch {
-    return { raw: txt };
-  }
-}
+    async function apiCall(params) {
+      // demo mode no escribe: simulamos respuestas
+      if (state.demo) return demoApi(params);
 
-function fmtMoney(n){
-  const x = Number(n || 0);
-  return x.toLocaleString("es-GT", { maximumFractionDigits: 2 });
-}
+      const url = apiUrl(params);
+      const data = await jsonp(url);
+      if (!data || data.ok !== true) {
+        const msg = (data && data.error) ? data.error : "Respuesta inválida del servidor";
+        throw new Error(msg);
+      }
+      return data;
+    }
 
-function fmtDate(v){
-  try { return new Date(v).toLocaleString("es-GT"); }
-  catch { return String(v); }
-}
+    /**********************
+     * DEMO (solo UI)
+     **********************/
+    function demoApi(params) {
+      const now = new Date();
+      if (params.action === "login") {
+        return Promise.resolve({
+          ok: true,
+          ruta: params.ruta,
+          peso: 14.8,
+          saldo: {
+            M2601310: 434,
+            M2601312: 139,
+            M2601377: 620,
+            M2601378: 111,
+            M2602303: 365
+          },
+          pendientes: [
+            { id: 12, fecha: now.toISOString(), de: "17030", para: params.ruta, plan:"M2601310", cantidad: 5, estado:"PENDIENTE" }
+          ]
+        });
+      }
+      if (params.action === "notifications") {
+        return Promise.resolve({ ok:true, ruta: params.ruta, pendientes: state.pendientes });
+      }
+      if (params.action === "use") {
+        const plan = params.plan;
+        const c = Number(params.cantidad);
+        state.saldo[plan] = Math.max(0, (state.saldo[plan]||0) - c);
+        return Promise.resolve({ ok:true, saldo: state.saldo });
+      }
+      if (params.action === "transfer_create") {
+        const id = Math.floor(Math.random()*9000)+1000;
+        const p = { id, fecha: now.toISOString(), de: params.de, para: params.para, plan: params.plan, cantidad: Number(params.cantidad), estado:"PENDIENTE" };
+        // solo visual
+        return Promise.resolve({ ok:true, id, ...p });
+      }
+      if (params.action === "transfer_respond") {
+        return Promise.resolve({ ok:true, id: Number(params.id), decision: params.decision, estado: params.decision === "APROBAR" ? "APROBADA" : "RECHAZADA" });
+      }
+      return Promise.resolve({ ok:true });
+    }
 
-function showApp(){
-  document.getElementById("loginCard").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  document.getElementById("btnLogout").style.display = "inline-block";
-  document.getElementById("sessionPill").textContent = "Ruta: " + sessionRuta;
-}
+    /**********************
+     * UI HELPERS
+     **********************/
+    function showToast(msg) {
+      els.toast.textContent = msg;
+      els.toast.style.display = "block";
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => els.toast.style.display = "none", 2600);
+    }
 
-function showLogin(){
-  document.getElementById("loginCard").style.display = "block";
-  document.getElementById("app").style.display = "none";
-  document.getElementById("btnLogout").style.display = "none";
-  document.getElementById("sessionPill").textContent = "Sin sesión";
-}
+    function setScreen(name) {
+      els.screenLogin.classList.remove("active");
+      els.screenHome.classList.remove("active");
+      if (name === "login") els.screenLogin.classList.add("active");
+      if (name === "home") els.screenHome.classList.add("active");
+    }
 
-/*********** ACCIONES ***********/
-async function loadSaldo(){
-  const data = await api("saldo", { ruta: sessionRuta });
+    function fmtTime(d) {
+      const dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt)) return "—";
+      const hh = String(dt.getHours()).padStart(2,"0");
+      const mm = String(dt.getMinutes()).padStart(2,"0");
+      const dd = String(dt.getDate()).padStart(2,"0");
+      const mo = String(dt.getMonth()+1).padStart(2,"0");
+      return `${dd}/${mo} ${hh}:${mm}`;
+    }
 
-  if (!data || data.saldo === undefined) {
-    throw new Error("No pude leer saldo. Revisa que exista la ruta en la hoja 'saldo'.");
-  }
+    function setBadge(n) {
+      const count = Number(n || 0);
+      if (count > 0) {
+        els.bellBadge.style.display = "inline-block";
+        els.bellBadge.textContent = count > 99 ? "99+" : String(count);
+      } else {
+        els.bellBadge.style.display = "none";
+      }
+    }
 
-  document.getElementById("saldoTxt").textContent = fmtMoney(data.saldo);
-  document.getElementById("saldoMeta").textContent = `RutaID ${data.ruta}`;
-}
+    function openModal(title, bodyHtml) {
+      els.modalTitle.textContent = title;
+      els.modalBody.innerHTML = bodyHtml;
+      els.modalBack.style.display = "flex";
+    }
+    function closeModal() {
+      els.modalBack.style.display = "none";
+      els.modalTitle.textContent = "—";
+      els.modalBody.innerHTML = "";
+    }
 
-async function sendTransfer(){
-  const to = document.getElementById("inpTo").value.trim();
-  const amount = document.getElementById("inpAmount").value.trim();
+    /**********************
+     * RENDER
+     **********************/
+    function renderHome() {
+      els.hdrTitle.textContent = "Recursos";
+      els.hdrSub.textContent = `Ruta ${state.ruta || "—"}`;
+      els.lblRuta.textContent = state.ruta || "—";
+      els.lblPeso.textContent = `PESO ${state.peso ?? "—"}%`;
+      els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
 
-  if (!to) return toast("Pon la ruta destino.");
-  if (to === sessionRuta) return toast("No puedes enviarte a ti mismo.");
-  if (!amount || Number(amount) <= 0) return toast("Monto inválido.");
+      // Bell + logout + transfer button
+      els.btnBell.style.display = "inline-flex";
+      els.btnLogout.style.display = "inline-flex";
+      els.btnTransfer.style.display = "block";
 
-  const data = await api("transferir", { from: sessionRuta, to, amount });
+      // Plans list
+      const plans = Object.keys(state.saldo || {}).sort();
+      els.plansList.innerHTML = "";
 
-  if (!data || data.status !== "ok") {
-    throw new Error("No se pudo crear la transferencia.");
-  }
+      if (!plans.length) {
+        els.plansList.innerHTML = `<div class="help">No se encontraron planes en el saldo. Revisa los headers en Google Sheets.</div>`;
+        return;
+      }
 
-  toast(`Transferencia creada (PENDING). ID: ${data.id}`);
-  document.getElementById("inpTo").value = "";
-  document.getElementById("inpAmount").value = "";
-  await loadPending();
-  await loadSaldo(); // saldo no cambia, pero refrescamos por consistencia
-}
+      plans.forEach((plan) => {
+        const bal = Number(state.saldo[plan] || 0);
 
-async function loadPending(){
-  const data = await api("pendientes", { ruta: sessionRuta });
+        const div = document.createElement("div");
+        div.className = "plan";
 
-  // 'pendientes' devuelve un ARRAY (no objeto)
-  const arr = Array.isArray(data) ? data : [];
+        div.innerHTML = `
+          <div class="planTop">
+            <div>
+              <div class="planName">${escapeHtml(plan)}</div>
+              <div class="muted" style="font-size:12px; margin-top:4px;">Disponible</div>
+            </div>
+            <div class="planBal">${bal}<small>u</small></div>
+          </div>
+          <div class="planActions">
+            <button class="mini" data-act="use" data-plan="${escapeAttr(plan)}">Agregar uso</button>
+            <button class="mini primary" data-act="transfer" data-plan="${escapeAttr(plan)}">Transferir</button>
+          </div>
+        `;
+        els.plansList.appendChild(div);
+      });
 
-  const table = document.getElementById("pendingTable");
-  const body = document.getElementById("pendingBody");
-  const empty = document.getElementById("pendingEmpty");
+      // Notifications badge
+      setBadge((state.pendientes || []).length);
+    }
 
-  body.innerHTML = "";
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
 
-  if (!arr.length){
-    table.style.display = "none";
-    empty.style.display = "block";
-    return;
-  }
+    /**********************
+     * FLOWS
+     **********************/
+    async function login(ruta, demo=false) {
+      state.demo = demo;
+      const r = String(ruta || "").trim();
+      if (!r) return showToast("Escribe la ruta");
 
-  empty.style.display = "none";
-  table.style.display = "table";
+      showToast("Conectando...");
+      const data = await apiCall({ action:"login", ruta:r });
 
-  for (const t of arr){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="muted">—</td>
-      <td>${t.from}</td>
-      <td class="right">${fmtMoney(t.amount)}</td>
-      <td class="muted">${t.id}</td>
-      <td class="right">
-        <button class="secondary" data-id="${t.id}" style="width:auto;">Aceptar</button>
-      </td>
-    `;
-    body.appendChild(tr);
-  }
-}
+      state.ruta = String(data.ruta || r);
+      state.peso = (data.peso ?? null);
+      state.saldo = (data.saldo || {});
+      state.pendientes = (data.pendientes || []);
+      state.lastUpdated = new Date();
 
-async function acceptTransfer(id){
-  const data = await api("aceptar", { id });
+      // persist ruta
+      localStorage.setItem("ruta_id", state.ruta);
+      localStorage.setItem("demo_mode", state.demo ? "1" : "0");
 
-  // 'aceptar' devuelve {status:"transferencia completada"}
-  if (!data || !String(data.status || "").toLowerCase().includes("completada")) {
-    throw new Error("No se pudo aceptar.");
-  }
+      setScreen("home");
+      renderHome();
+      startPolling();
+      showToast("Listo");
+    }
 
-  toast("Transferencia aceptada. Saldos actualizados.");
-  await loadSaldo();
-  await loadPending();
-}
+    async function refreshSaldo() {
+      if (!state.ruta) return;
+      const data = await apiCall({ action:"login", ruta: state.ruta }); // login trae saldo + pendientes
+      state.peso = (data.peso ?? state.peso);
+      state.saldo = (data.saldo || state.saldo);
+      state.pendientes = (data.pendientes || []);
+      state.lastUpdated = new Date();
+      renderHome();
+    }
 
-/*********** EVENTOS ***********/
-document.getElementById("btnLogin").addEventListener("click", async () => {
-  const ruta = document.getElementById("inpRuta").value.trim();
-  if (!ruta) return toast("Ingresa tu RutaID.");
-  sessionRuta = ruta;
+    function startPolling() {
+      stopPolling();
+      state.pollTimer = setInterval(async () => {
+        try {
+          if (!state.ruta) return;
+          const d = await apiCall({ action:"notifications", ruta: state.ruta });
+          state.pendientes = d.pendientes || [];
+          setBadge(state.pendientes.length);
+        } catch (e) {
+          // silencioso para no molestar
+        }
+      }, POLL_MS);
+    }
 
-  try{
-    await loadSaldo(); // valida conexión + ruta
-    showApp();
-    await loadPending();
-  } catch(err){
-    sessionRuta = null;
-    toast("Error al entrar: " + err.message);
-  }
-});
+    function stopPolling() {
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
 
-document.getElementById("btnLogout").addEventListener("click", () => {
-  sessionRuta = null;
-  document.getElementById("inpRuta").value = "";
-  showLogin();
-});
+    function logout() {
+      stopPolling();
+      state.ruta = null;
+      state.peso = null;
+      state.saldo = {};
+      state.pendientes = [];
+      state.lastUpdated = null;
+      localStorage.removeItem("ruta_id");
+      localStorage.removeItem("demo_mode");
+      state.demo = false;
 
-document.getElementById("btnRefresh").addEventListener("click", async (e) => {
-  const btn = e.target;
-  btn.dataset.label = btn.textContent;
-  setLoading(btn, true);
-  try{ await loadSaldo(); toast("Saldo actualizado."); }
-  catch(err){ toast("Error: " + err.message); }
-  finally{ setLoading(btn, false); }
-});
+      els.btnBell.style.display = "none";
+      els.btnLogout.style.display = "none";
+      els.btnTransfer.style.display = "none";
+      setBadge(0);
+      setScreen("login");
+      showToast("Sesión cerrada");
+    }
 
-document.getElementById("btnSend").addEventListener("click", async (e) => {
-  const btn = e.target;
-  btn.dataset.label = btn.textContent;
-  setLoading(btn, true);
-  try{ await sendTransfer(); }
-  catch(err){ toast("Error: " + err.message); }
-  finally{ setLoading(btn, false); }
-});
+    function openUseModal(plan) {
+      openModal("Agregar uso", `
+        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
+        <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
+        <button class="btn" id="useSend">Guardar uso</button>
+        <button class="btn secondary" id="useCancel">Cancelar</button>
+      `);
 
-document.getElementById("btnLoadPending").addEventListener("click", async (e) => {
-  const btn = e.target;
-  btn.dataset.label = btn.textContent;
-  setLoading(btn, true);
-  try{ await loadPending(); toast("Pendientes cargadas."); }
-  catch(err){ toast("Error: " + err.message); }
-  finally{ setLoading(btn, false); }
-});
+      $("useCancel").onclick = closeModal;
+      $("useSend").onclick = async () => {
+        const qty = Number(($("useQty").value || "").trim());
+        if (!qty || qty <= 0) return showToast("Cantidad inválida");
+        try{
+          showToast("Guardando...");
+          await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
+          await refreshSaldo();
+          closeModal();
+          showToast("Uso registrado");
+        } catch(e){
+          showToast(e.message || "Error");
+        }
+      };
+    }
 
-document.getElementById("pendingBody").addEventListener("click", async (ev) => {
-  const btn = ev.target.closest("button");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (!id) return;
+    function openTransferModal(defaultPlan=null) {
+      const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
+        const sel = (p === defaultPlan) ? "selected" : "";
+        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(p)}</option>`;
+      }).join("");
 
-  btn.dataset.label = btn.textContent;
-  setLoading(btn, true);
-  try{
-    await acceptTransfer(id);
-  } catch(err){
-    toast("Error: " + err.message);
-  } finally {
-    setLoading(btn, false);
-  }
-});
-</script>
+      openModal("Transferir", `
+        <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta. Se descuenta al enviar y queda pendiente para aceptar.</div>
+        <div class="grid2">
+          <input class="input" id="trPara" inputmode="numeric" pattern="[0-9]*" placeholder="Ruta destino (ej: 17030)" />
+          <input class="input" id="trQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad" />
+        </div>
+        <select class="input" id="trPlan">${planOptions}</select>
+        <button class="btn" id="trSend">Enviar transferencia</button>
+        <button class="btn secondary" id="trCancel">Cancelar</button>
+      `);
+
+      $("trCancel").onclick = closeModal;
+      $("trSend").onclick = async () => {
+        const para = String(($("trPara").value || "").trim());
+        const plan = $("trPlan").value;
+        const qty = Number(($("trQty").value || "").trim());
+        if (!para) return showToast("Falta ruta destino");
+        if (!qty || qty <= 0) return showToast("Cantidad inválida");
+        try{
+          showToast("Enviando...");
+          await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
+          await refreshSaldo();
+          closeModal();
+          showToast("Transferencia enviada");
+        } catch(e){
+          showToast(e.message || "Error");
+        }
+      };
+    }
+
+    function openNotificationsModal() {
+      const pend = state.pendientes || [];
+      if (!pend.length) {
+        openModal("Notificaciones", `<div class="help">No tienes transferencias pendientes.</div><button class="btn secondary" id="nClose">Cerrar</button>`);
+        $("nClose").onclick = closeModal;
+        return;
+      }
+
+      const list = pend.map(t => {
+        return `
+          <div class="item">
+            <div class="itemTop">
+              <div>
+                <div class="itemMeta">ID ${escapeHtml(t.id)} • ${escapeHtml(fmtTime(t.fecha))}</div>
+                <div class="muted" style="font-size:12px; margin-top:4px;">
+                  De <span class="pill">${escapeHtml(t.de)}</span> → Para <span class="pill">${escapeHtml(t.para)}</span>
+                </div>
+                <div class="muted" style="font-size:12px; margin-top:6px;">
+                  Plan <span class="pill">${escapeHtml(t.plan)}</span>
+                </div>
+              </div>
+              <div class="itemAmt">${Number(t.cantidad || 0)} <span class="muted" style="font-size:12px; font-weight:700;">u</span></div>
+            </div>
+
+            <div class="itemBtns">
+              <button class="ghost ok" data-dec="APROBAR" data-id="${escapeAttr(t.id)}">Aceptar</button>
+              <button class="ghost danger" data-dec="RECHAZAR" data-id="${escapeAttr(t.id)}">Rechazar</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      openModal("Notificaciones", `
+        <div class="help">Tienes <strong>${pend.length}</strong> transferencia(s) pendientes.</div>
+        <div class="list">${list}</div>
+        <button class="btn secondary" id="nClose">Cerrar</button>
+      `);
+
+      $("nClose").onclick = closeModal;
+
+      // bind buttons
+      els.modalBody.querySelectorAll("[data-dec]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-id");
+          const dec = btn.getAttribute("data-dec");
+          try{
+            showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
+            await apiCall({ action:"transfer_respond", id, decision: dec });
+            // refrescar saldo y pendientes
+            await refreshSaldo();
+            // refrescar lista (re-open)
+            closeModal();
+            openNotificationsModal();
+            showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
+          } catch(e){
+            showToast(e.message || "Error");
+          }
+        });
+      });
+    }
+
+    /**********************
+     * EVENTS
+     **********************/
+    els.btnEntrar.addEventListener("click", async () => {
+      try{
+        await login(els.inpRuta.value, false);
+      } catch(e){
+        showToast(e.message || "Error");
+      }
+    });
+
+    els.btnDemo.addEventListener("click", async () => {
+      try{
+        const r = els.inpRuta.value || "17029";
+        await login(r, true);
+      } catch(e){
+        showToast(e.message || "Error");
+      }
+    });
+
+    els.btnRefresh.addEventListener("click", async () => {
+      try{
+        showToast("Actualizando...");
+        await refreshSaldo();
+        showToast("Actualizado");
+      } catch(e){
+        showToast(e.message || "Error");
+      }
+    });
+
+    els.btnLogout.addEventListener("click", logout);
+
+    els.btnBell.addEventListener("click", openNotificationsModal);
+
+    els.btnTransfer.addEventListener("click", () => openTransferModal(null));
+
+    // Delegación: click en botones dentro de cada plan
+    els.plansList.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const act = btn.getAttribute("data-act");
+      const plan = btn.getAttribute("data-plan");
+      if (!act || !plan) return;
+      if (act === "use") openUseModal(plan);
+      if (act === "transfer") openTransferModal(plan);
+    });
+
+    els.modalClose.addEventListener("click", closeModal);
+    els.modalBack.addEventListener("click", (e) => {
+      if (e.target === els.modalBack) closeModal();
+    });
+
+    // Enter on input
+    els.inpRuta.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") els.btnEntrar.click();
+    });
+
+    /**********************
+     * BOOT
+     **********************/
+    (function boot(){
+      const savedRuta = localStorage.getItem("ruta_id");
+      const demoMode = localStorage.getItem("demo_mode") === "1";
+      if (savedRuta) {
+        els.inpRuta.value = savedRuta;
+        login(savedRuta, demoMode).catch(() => {
+          // si falla, vuelve a login
+          logout();
+        });
+      } else {
+        // UI inicial
+        els.btnBell.style.display = "none";
+        els.btnLogout.style.display = "none";
+        els.btnTransfer.style.display = "none";
+      }
+    })();
+  </script>
 </body>
 </html>
