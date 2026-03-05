@@ -441,7 +441,7 @@
       </section>
     </main>
 
-    <div class="footerBar">
+    <div class="footerBar" id="footerBar" style="display:none;">
       <div class="footerBtns">
         <button class="btn secondary" id="btnTransfer" style="display:none;">Transferir</button>
       </div>
@@ -723,7 +723,6 @@
 
       els.btnBell.style.display = "inline-flex";
       els.btnLogout.style.display = "inline-flex";
-      els.btnTransfer.style.display = "block";
 
       const plans = Object.keys(state.saldo || {}).sort();
       els.plansList.innerHTML = "";
@@ -864,7 +863,6 @@
 
       els.btnBell.style.display = "none";
       els.btnLogout.style.display = "none";
-      els.btnTransfer.style.display = "none";
       setBadge(0);
       setScreen("login");
       showToast("Sesión cerrada");
@@ -904,7 +902,7 @@
     function openTransferModal(defaultPlan=null) {
       const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
         const sel = (p === defaultPlan) ? "selected" : "";
-        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(p)}</option>`;
+        return `<option ${sel} value="${escapeAttr(p)}">${state.saldo[p] ?? 0} u disponibles</option>`;
       }).join("");
 
       openModal("Transferir", `
@@ -1048,7 +1046,6 @@
       } else {
         els.btnBell.style.display = "none";
         els.btnLogout.style.display = "none";
-        els.btnTransfer.style.display = "none";
       }
     })();
   </script>
