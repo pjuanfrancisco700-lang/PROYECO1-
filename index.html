@@ -471,6 +471,17 @@
      **********************/
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyzZvkWeCf91JX-VgUYmF9lOGfNpNCqkjcFPHtuCebOjnsTVG3BGU8TF5H7Rqo4Opg/exec";
     const POLL_MS = 9000;
+    const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min para hacer el "entrar" instantáneo
+    const FAST_TOAST_MS = 1400;
+
+    // Evita llamadas duplicadas (ej: doble tap) y mejora fluidez percibida
+    const inflight = new Map();
+    function apiCallDedup(key, params){
+      if (inflight.has(key)) return inflight.get(key);
+      const p = apiCall(params).finally(() => inflight.delete(key));
+      inflight.set(key, p);
+      return p;
+    }
 
     /**********************
      * UI STATE
@@ -591,11 +602,72 @@
     /**********************
      * UI HELPERS
      **********************/
-    function showToast(msg) {
+    function showToast(msg, ms = 2600) {
       els.toast.textContent = msg;
       els.toast.style.display = "block";
       clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => els.toast.style.display = "none", 2600);
+      showToast._t = setTimeout(() => els.toast.style.display = "none", ms);
+    }
+
+    function setBusy(el, busy, labelBusy){
+      if (!el) return;
+      if (busy) {
+        el.dataset._label = el.textContent;
+        el.disabled = true;
+        el.style.opacity = "0.75";
+        el.style.pointerEvents = "none";
+        if (labelBusy) el.textContent = labelBusy;
+      } else {
+        el.disabled = false;
+        el.style.opacity = "";
+        el.style.pointerEvents = "";
+        if (el.dataset._label) el.textContent = el.dataset._label;
+        delete el.dataset._label;
+      }
+    }
+
+    // Cache local para que "Entrar" se sienta inmediato
+    function cacheKey(ruta){ return `cache_${ruta}`; }
+
+    function saveCache(){
+      if (!state.ruta) return;
+      try {
+        const payload = {
+          ts: Date.now(),
+          ruta: state.ruta,
+          peso: state.peso,
+          saldo: state.saldo,
+          pendientes: state.pendientes,
+          lastUpdated: state.lastUpdated ? state.lastUpdated.toISOString() : null,
+        };
+        localStorage.setItem(cacheKey(state.ruta), JSON.stringify(payload));
+      } catch(e) {}
+    }
+
+    function loadCache(ruta){
+      try {
+        const raw = localStorage.getItem(cacheKey(ruta));
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (!c || !c.ts) return null;
+        if (Date.now() - c.ts > CACHE_TTL_MS) return null;
+        return c;
+      } catch(e){ return null; }
+    }
+
+    // Actualiza UI al instante sin esperar servidor (optimistic UI)
+    function applyDelta(plan, delta){
+      const cur = Number(state.saldo?.[plan] || 0);
+      const next = Math.max(0, cur + Number(delta || 0));
+      state.saldo = { ...(state.saldo || {}), [plan]: next };
+      state.lastUpdated = new Date();
+      renderHome();
+      saveCache();
+    }
+
+    function syncInBackground(){
+      // refresco silencioso para alinear con Sheets
+      refreshSaldo().catch(() => {});
     }
 
     function setScreen(name) {
@@ -692,32 +764,66 @@
       const r = String(ruta || "").trim();
       if (!r) return showToast("Escribe la ruta");
 
-      showToast("Conectando...");
-      const data = await apiCall({ action:"login", ruta:r });
+      // 1) Render inmediato con cache (si existe) para que el "Entrar" sea instantáneo
+      const cached = loadCache(r);
+      if (cached && cached.saldo) {
+        state.ruta = String(cached.ruta || r);
+        state.peso = (cached.peso ?? null);
+        state.saldo = (cached.saldo || {});
+        state.pendientes = (cached.pendientes || []);
+        state.lastUpdated = cached.lastUpdated ? new Date(cached.lastUpdated) : new Date();
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Cargando datos…", FAST_TOAST_MS);
+      } else {
+        // si no hay cache, igual cambiamos de pantalla rápido (mejor sensación)
+        state.ruta = r;
+        state.saldo = {};
+        state.pendientes = [];
+        state.lastUpdated = new Date();
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Conectando…", FAST_TOAST_MS);
+      }
 
-      state.ruta = String(data.ruta || r);
-      state.peso = (data.peso ?? null);
-      state.saldo = (data.saldo || {});
-      state.pendientes = (data.pendientes || []);
-      state.lastUpdated = new Date();
+      // 2) Llamada real (dedupe) para sincronizar con Sheets
+      try {
+        const data = await apiCallDedup(`login:${r}`, { action:"login", ruta:r });
+        state.ruta = String(data.ruta || r);
+        state.peso = (data.peso ?? null);
+        state.saldo = (data.saldo || {});
+        state.pendientes = (data.pendientes || []);
+        state.lastUpdated = new Date();
 
-      localStorage.setItem("ruta_id", state.ruta);
-      localStorage.setItem("demo_mode", state.demo ? "1" : "0");
+        localStorage.setItem("ruta_id", state.ruta);
+        localStorage.setItem("demo_mode", state.demo ? "1" : "0");
+        saveCache();
 
-      setScreen("home");
-      renderHome();
-      startPolling();
-      showToast("Listo");
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Listo", FAST_TOAST_MS);
+      } catch(e) {
+        // si falló pero ya mostramos cache, no botamos al usuario; solo avisamos
+        if (cached) {
+          showToast("Sin conexión. Mostrando últimos datos.", 2600);
+          return;
+        }
+        throw e;
+      }
     }
 
     async function refreshSaldo() {
       if (!state.ruta) return;
-      const data = await apiCall({ action:"login", ruta: state.ruta });
+      const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
       state.peso = (data.peso ?? state.peso);
       state.saldo = (data.saldo || state.saldo);
       state.pendientes = (data.pendientes || []);
       state.lastUpdated = new Date();
       renderHome();
+      saveCache();
     }
 
     function startPolling() {
@@ -725,12 +831,20 @@
       state.pollTimer = setInterval(async () => {
         try {
           if (!state.ruta) return;
-          const d = await apiCall({ action:"notifications", ruta: state.ruta });
+          // Dedupe para que no se acumulen si la red está lenta
+          const d = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
           state.pendientes = d.pendientes || [];
           setBadge(state.pendientes.length);
+          saveCache();
         } catch (e) {}
       }, POLL_MS);
     }
+
+    // Pausa polling cuando el usuario cambia de app/pestaña (más fluido y menos carga)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopPolling();
+      else if (state.ruta) startPolling();
+    });
 
     function stopPolling() {
       if (state.pollTimer) clearInterval(state.pollTimer);
@@ -768,14 +882,21 @@
       $("useSend").onclick = async () => {
         const qty = Number(($('useQty').value || "").trim());
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
+
+        // Optimista: aplica al instante
+        closeModal();
+        applyDelta(plan, -qty);
+        showToast("Guardado (sincronizando…)", FAST_TOAST_MS);
+
         try{
-          showToast("Guardando...");
           await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
-          await refreshSaldo();
-          closeModal();
-          showToast("Uso registrado");
+          // sincroniza en background (por si el server ajusta algo)
+          syncInBackground();
+          showToast("Uso registrado", FAST_TOAST_MS);
         } catch(e){
-          showToast(e.message || "Error");
+          // rollback
+          applyDelta(plan, +qty);
+          showToast(e.message || "Error", 2600);
         }
       };
     }
@@ -804,14 +925,20 @@
         const qty = Number(($('trQty').value || "").trim());
         if (!para) return showToast("Falta ruta destino");
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
+
+        // Optimista: descuenta al instante
+        closeModal();
+        applyDelta(plan, -qty);
+        showToast("Enviada (sincronizando…)", FAST_TOAST_MS);
+
         try{
-          showToast("Enviando...");
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          await refreshSaldo();
-          closeModal();
-          showToast("Transferencia enviada");
+          syncInBackground();
+          showToast("Transferencia enviada", FAST_TOAST_MS);
         } catch(e){
-          showToast(e.message || "Error");
+          // rollback
+          applyDelta(plan, +qty);
+          showToast(e.message || "Error", 2600);
         }
       };
     }
