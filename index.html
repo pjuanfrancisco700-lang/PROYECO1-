@@ -10,8 +10,7 @@
 
   <style>
     :root{
-      /* Apple-ish palette */
-      --bg: #f2f2f7;          /* iOS system grouped background */
+      --bg: #f2f2f7;
       --bg2:#ffffff;
       --surface: rgba(255,255,255,.88);
       --surface2:#ffffff;
@@ -31,7 +30,6 @@
       --warn:#f4b400;
       --bad:#ff3b30;
 
-      /* light blue accent */
       --accent:#0078d4;
       --accent2:#2b88d8;
       --accentSoft: rgba(0,120,212,.12);
@@ -64,7 +62,6 @@
       flex-direction:column;
     }
 
-    /* Top bar */
     header{
       position: sticky;
       top: 0;
@@ -130,7 +127,6 @@
     .screen{ display:none; }
     .screen.active{ display:block; }
 
-    /* Login */
     .loginWrap{ margin-top: 14vh; padding: 18px; }
     .hero{ padding: 16px 16px 6px; display:flex; flex-direction:column; gap:10px; }
     .hero .logo{
@@ -187,7 +183,6 @@
       color: rgba(11,18,32,.88);
     }
 
-    /* Panels / pills */
     .row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .pill{
       font-family: var(--mono);
@@ -227,8 +222,21 @@
     }
     .planTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
     .planName{ font-family: var(--mono); font-size:12px; color: rgba(11,18,32,.78); letter-spacing:.2px; }
-    .planBal{ font-size: 26px; font-weight: 900; letter-spacing: .2px; }
+    .planBal{
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      color: var(--text);
+    }
     .planBal small{ font-size: 12px; color: var(--muted); font-weight: 800; margin-left: 6px; }
+    .planBal.negative{ color: var(--bad); }
+
+    .negInfo{
+      margin-top:4px;
+      font-size:12px;
+      font-weight:800;
+      color: var(--bad);
+    }
 
     .planActions{ display:flex; gap:10px; }
 
@@ -253,7 +261,6 @@
       box-shadow: 0 16px 26px rgba(58,160,255,.16);
     }
 
-    /* Toast */
     .toast{
       position:fixed;
       left:50%;
@@ -273,7 +280,6 @@
       color: rgba(11,18,32,.86);
     }
 
-    /* Modal */
     .modalBack{
       position:fixed;
       inset:0;
@@ -343,7 +349,6 @@
     .ok{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
     .danger{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
-    /* Footer */
     .footerBar{
       position: sticky;
       bottom: 0;
@@ -392,7 +397,6 @@
     </header>
 
     <main>
-      <!-- LOGIN -->
       <section class="screen active" id="screenLogin">
         <div class="card loginWrap">
           <div class="hero">
@@ -409,7 +413,6 @@
         </div>
       </section>
 
-      <!-- HOME -->
       <section class="screen" id="screenHome">
         <div class="panel">
           <div class="row">
@@ -466,15 +469,11 @@
   </div>
 
   <script>
-    /**********************
-     * CONFIG
-     **********************/
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyzZvkWeCf91JX-VgUYmF9lOGfNpNCqkjcFPHtuCebOjnsTVG3BGU8TF5H7Rqo4Opg/exec";
     const POLL_MS = 9000;
-    const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min para hacer el "entrar" instantáneo
+    const CACHE_TTL_MS = 5 * 60 * 1000;
     const FAST_TOAST_MS = 1400;
 
-    // Evita llamadas duplicadas (ej: doble tap) y mejora fluidez percibida
     const inflight = new Map();
     function apiCallDedup(key, params){
       if (inflight.has(key)) return inflight.get(key);
@@ -483,15 +482,13 @@
       return p;
     }
 
-    /**********************
-     * UI STATE
-     **********************/
     const $ = (id) => document.getElementById(id);
 
     const state = {
       ruta: null,
       peso: null,
       saldo: {},
+      saldoEstado: {},
       pendientes: [],
       lastUpdated: null,
       pollTimer: null,
@@ -522,16 +519,10 @@
       modalClose: $("modalClose"),
     };
 
-    /**********************
-     * ZOOM BLOCK (iOS)
-     **********************/
     document.addEventListener('gesturestart', (e) => e.preventDefault());
     document.addEventListener('gesturechange', (e) => e.preventDefault());
     document.addEventListener('gestureend', (e) => e.preventDefault());
 
-    /**********************
-     * TRANSPORTE API
-     **********************/
     function jsonp(url, timeoutMs = 20000) {
       return new Promise((resolve, reject) => {
         const cb = "cb_" + Math.random().toString(36).slice(2);
@@ -601,14 +592,12 @@
       let data = null;
       let lastErr = null;
 
-      // Primero intenta JSON normal
       try {
         data = await fetchJson(url);
       } catch (e) {
         lastErr = e;
       }
 
-      // Si falla, intenta JSONP como respaldo
       if (!data) {
         try {
           data = await jsonp(url);
@@ -628,34 +617,75 @@
       return data;
     }
 
-    /**********************
-     * DEMO (solo UI)
-     **********************/
     function demoApi(params) {
       const now = new Date();
+
       if (params.action === "login") {
         return Promise.resolve({
           ok: true,
           ruta: params.ruta,
           peso: 14.8,
-          saldo: { M2601310: 434, M2601312: 139, M2601377: 620, M2601378: 111, M2602303: 365 },
+          saldo: { M2601310: 434, M2601312: -5, M2601377: 620, M2601378: 111, M2602303: 365 },
+          saldo_estado: {
+            M2601310: { valor: 434, negativo: false, color: "normal" },
+            M2601312: { valor: -5, negativo: true, color: "red" },
+            M2601377: { valor: 620, negativo: false, color: "normal" },
+            M2601378: { valor: 111, negativo: false, color: "normal" },
+            M2602303: { valor: 365, negativo: false, color: "normal" }
+          },
           pendientes: [{ id: 12, fecha: now.toISOString(), de: "17030", para: params.ruta, plan:"M2601310", cantidad: 5, estado:"PENDIENTE" }]
         });
       }
-      if (params.action === "notifications") return Promise.resolve({ ok:true, ruta: params.ruta, pendientes: state.pendientes });
-      if (params.action === "use") {
-        const plan = params.plan, c = Number(params.cantidad);
-        state.saldo[plan] = Math.max(0, (state.saldo[plan]||0) - c);
-        return Promise.resolve({ ok:true, saldo: state.saldo });
+
+      if (params.action === "notifications") {
+        return Promise.resolve({ ok:true, ruta: params.ruta, pendientes: state.pendientes });
       }
-      if (params.action === "transfer_create") return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
+
+      if (params.action === "use") {
+        const plan = params.plan;
+        const c = Number(params.cantidad);
+        const current = Number(state.saldo[plan] || 0);
+        const next = current - c;
+        state.saldo[plan] = next;
+        state.saldoEstado[plan] = {
+          valor: next,
+          negativo: next < 0,
+          color: next < 0 ? "red" : "normal"
+        };
+        return Promise.resolve({
+          ok:true,
+          before: current,
+          after: next,
+          negativo: next < 0,
+          sobregiro: next < 0 ? Math.abs(next) : 0,
+          color: next < 0 ? "red" : "normal"
+        });
+      }
+
+      if (params.action === "transfer_create") {
+        const plan = params.plan;
+        const qty = Number(params.cantidad || 0);
+        const current = Number(state.saldo[plan] || 0);
+        const next = current - qty;
+
+        if (next < 0) {
+          return Promise.reject(new Error(`Saldo insuficiente en origen. Actual=${current}, intento=${qty}`));
+        }
+
+        state.saldo[plan] = next;
+        state.saldoEstado[plan] = {
+          valor: next,
+          negativo: next < 0,
+          color: next < 0 ? "red" : "normal"
+        };
+
+        return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
+      }
+
       if (params.action === "transfer_respond") return Promise.resolve({ ok:true });
       return Promise.resolve({ ok:true });
     }
 
-    /**********************
-     * UI HELPERS
-     **********************/
     function showToast(msg, ms = 2600) {
       els.toast.textContent = msg;
       els.toast.style.display = "block";
@@ -663,24 +693,6 @@
       showToast._t = setTimeout(() => els.toast.style.display = "none", ms);
     }
 
-    function setBusy(el, busy, labelBusy){
-      if (!el) return;
-      if (busy) {
-        el.dataset._label = el.textContent;
-        el.disabled = true;
-        el.style.opacity = "0.75";
-        el.style.pointerEvents = "none";
-        if (labelBusy) el.textContent = labelBusy;
-      } else {
-        el.disabled = false;
-        el.style.opacity = "";
-        el.style.pointerEvents = "";
-        if (el.dataset._label) el.textContent = el.dataset._label;
-        delete el.dataset._label;
-      }
-    }
-
-    // Cache local para que "Entrar" se sienta inmediato
     function cacheKey(ruta){ return `cache_${ruta}`; }
 
     function saveCache(){
@@ -691,6 +703,7 @@
           ruta: state.ruta,
           peso: state.peso,
           saldo: state.saldo,
+          saldoEstado: state.saldoEstado,
           pendientes: state.pendientes,
           lastUpdated: state.lastUpdated ? state.lastUpdated.toISOString() : null,
         };
@@ -709,18 +722,37 @@
       } catch(e){ return null; }
     }
 
-    // Actualiza UI al instante sin esperar servidor (optimistic UI)
+    function rebuildSaldoEstadoFromSaldo() {
+      const out = {};
+      Object.keys(state.saldo || {}).forEach(plan => {
+        const val = Number(state.saldo[plan] || 0);
+        out[plan] = {
+          valor: val,
+          negativo: val < 0,
+          color: val < 0 ? "red" : "normal"
+        };
+      });
+      state.saldoEstado = out;
+    }
+
     function applyDelta(plan, delta){
       const cur = Number(state.saldo?.[plan] || 0);
-      const next = Math.max(0, cur + Number(delta || 0));
+      const next = cur + Number(delta || 0);
       state.saldo = { ...(state.saldo || {}), [plan]: next };
+      state.saldoEstado = {
+        ...(state.saldoEstado || {}),
+        [plan]: {
+          valor: next,
+          negativo: next < 0,
+          color: next < 0 ? "red" : "normal"
+        }
+      };
       state.lastUpdated = new Date();
       renderHome();
       saveCache();
     }
 
     function syncInBackground(){
-      // refresco silencioso para alinear con Sheets
       refreshSaldo().catch(() => {});
     }
 
@@ -765,9 +797,6 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
 
-    /**********************
-     * RENDER
-     **********************/
     function renderHome() {
       els.hdrTitle.textContent = "Recursos";
       els.hdrSub.textContent = `Ruta ${state.ruta || "—"}`;
@@ -788,6 +817,16 @@
 
       plans.forEach((plan) => {
         const bal = Number(state.saldo[plan] || 0);
+        const balInfo = state.saldoEstado?.[plan] || {
+          valor: bal,
+          negativo: bal < 0,
+          color: bal < 0 ? "red" : "normal"
+        };
+        const negativeClass = balInfo.negativo ? "negative" : "";
+        const negInfoHtml = balInfo.negativo
+          ? `<div class="negInfo">Sobregiro: ${Math.abs(bal)} u</div>`
+          : "";
+
         const div = document.createElement("div");
         div.className = "plan";
         div.innerHTML = `
@@ -795,8 +834,9 @@
             <div>
               <div class="planName">${escapeHtml(plan)}</div>
               <div class="muted" style="font-size:12px; margin-top:4px;">Disponible</div>
+              ${negInfoHtml}
             </div>
-            <div class="planBal">${bal}<small>u</small></div>
+            <div class="planBal ${negativeClass}">${bal}<small>u</small></div>
           </div>
           <div class="planActions">
             <button class="mini" data-act="use" data-plan="${escapeAttr(plan)}">Agregar uso</button>
@@ -809,20 +849,18 @@
       setBadge((state.pendientes || []).length);
     }
 
-    /**********************
-     * FLOWS
-     **********************/
     async function login(ruta, demo=false) {
       state.demo = demo;
       const r = String(ruta || "").trim();
       if (!r) return showToast("Escribe la ruta");
 
-      // 1) Render inmediato con cache (si existe) para que el "Entrar" sea instantáneo
       const cached = loadCache(r);
       if (cached && cached.saldo) {
         state.ruta = String(cached.ruta || r);
         state.peso = (cached.peso ?? null);
         state.saldo = (cached.saldo || {});
+        state.saldoEstado = (cached.saldoEstado || {});
+        if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (cached.pendientes || []);
         state.lastUpdated = cached.lastUpdated ? new Date(cached.lastUpdated) : new Date();
         setScreen("home");
@@ -830,9 +868,9 @@
         startPolling();
         showToast("Cargando datos…", FAST_TOAST_MS);
       } else {
-        // si no hay cache, igual cambiamos de pantalla rápido (mejor sensación)
         state.ruta = r;
         state.saldo = {};
+        state.saldoEstado = {};
         state.pendientes = [];
         state.lastUpdated = new Date();
         setScreen("home");
@@ -841,12 +879,13 @@
         showToast("Conectando…", FAST_TOAST_MS);
       }
 
-      // 2) Llamada real (dedupe) para sincronizar con Sheets
       try {
         const data = await apiCallDedup(`login:${r}`, { action:"login", ruta:r });
         state.ruta = String(data.ruta || r);
         state.peso = (data.peso ?? null);
         state.saldo = (data.saldo || {});
+        state.saldoEstado = (data.saldo_estado || {});
+        if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (data.pendientes || []);
         state.lastUpdated = new Date();
 
@@ -859,7 +898,6 @@
         startPolling();
         showToast("Listo", FAST_TOAST_MS);
       } catch(e) {
-        // si falló pero ya mostramos cache, no botamos al usuario; solo avisamos
         if (cached) {
           showToast("Sin conexión. Mostrando últimos datos.", 2600);
           return;
@@ -873,6 +911,8 @@
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
       state.peso = (data.peso ?? state.peso);
       state.saldo = (data.saldo || state.saldo);
+      state.saldoEstado = (data.saldo_estado || {});
+      if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
       state.pendientes = (data.pendientes || []);
       state.lastUpdated = new Date();
       renderHome();
@@ -884,7 +924,6 @@
       state.pollTimer = setInterval(async () => {
         try {
           if (!state.ruta) return;
-          // Dedupe para que no se acumulen si la red está lenta
           const d = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
           state.pendientes = d.pendientes || [];
           setBadge(state.pendientes.length);
@@ -893,7 +932,6 @@
       }, POLL_MS);
     }
 
-    // Pausa polling cuando el usuario cambia de app/pestaña (más fluido y menos carga)
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) stopPolling();
       else if (state.ruta) startPolling();
@@ -909,6 +947,7 @@
       state.ruta = null;
       state.peso = null;
       state.saldo = {};
+      state.saldoEstado = {};
       state.pendientes = [];
       state.lastUpdated = null;
       localStorage.removeItem("ruta_id");
@@ -924,7 +963,7 @@
 
     function openUseModal(plan) {
       openModal("Agregar uso", `
-        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
+        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>. Si te pasas del disponible, el saldo quedará en rojo y negativo.</div>
         <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
         <button class="btn" id="useSend">Guardar uso</button>
         <button class="btn secondary" id="useCancel">Cancelar</button>
@@ -935,18 +974,29 @@
         const qty = Number(($('useQty').value || "").trim());
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
-        // Optimista: aplica al instante
         closeModal();
         applyDelta(plan, -qty);
         showToast("Guardado (sincronizando…)", FAST_TOAST_MS);
 
         try{
-          await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
-          // sincroniza en background (por si el server ajusta algo)
+          const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
+
+          if (typeof res.after !== "undefined") {
+            const next = Number(res.after || 0);
+            state.saldo[plan] = next;
+            state.saldoEstado[plan] = {
+              valor: next,
+              negativo: !!res.negativo,
+              color: res.color || (next < 0 ? "red" : "normal")
+            };
+            state.lastUpdated = new Date();
+            renderHome();
+            saveCache();
+          }
+
           syncInBackground();
-          showToast("Uso registrado", FAST_TOAST_MS);
+          showToast(res.negativo ? `Uso registrado. Sobregiro: ${res.sobregiro}` : "Uso registrado", 2200);
         } catch(e){
-          // rollback
           applyDelta(plan, +qty);
           showToast(e.message || "Error", 2600);
         }
@@ -955,8 +1005,10 @@
 
     function openTransferModal(defaultPlan=null) {
       const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
+        const bal = Number(state.saldo[p] ?? 0);
+        const label = `${p} — ${bal} u disponibles`;
         const sel = (p === defaultPlan) ? "selected" : "";
-        return `<option ${sel} value="${escapeAttr(p)}">${state.saldo[p] ?? 0} u disponibles</option>`;
+        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(label)}</option>`;
       }).join("");
 
       openModal("Transferir", `
@@ -975,10 +1027,15 @@
         const para = String(($('trPara').value || "").trim());
         const plan = $('trPlan').value;
         const qty = Number(($('trQty').value || "").trim());
+        const current = Number(state.saldo?.[plan] || 0);
+
         if (!para) return showToast("Falta ruta destino");
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
-        // Optimista: descuenta al instante
+        if (qty > current) {
+          return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
+        }
+
         closeModal();
         applyDelta(plan, -qty);
         showToast("Enviada (sincronizando…)", FAST_TOAST_MS);
@@ -988,7 +1045,6 @@
           syncInBackground();
           showToast("Transferencia enviada", FAST_TOAST_MS);
         } catch(e){
-          // rollback
           applyDelta(plan, +qty);
           showToast(e.message || "Error", 2600);
         }
@@ -1051,9 +1107,6 @@
       });
     }
 
-    /**********************
-     * EVENTS
-     **********************/
     els.btnEntrar.addEventListener("click", async () => {
       try{ await login(els.inpRuta.value, false); }
       catch(e){ showToast(e.message || "Error"); }
@@ -1088,9 +1141,6 @@
 
     els.inpRuta.addEventListener("keydown", (e) => { if (e.key === "Enter") els.btnEntrar.click(); });
 
-    /**********************
-     * BOOT
-     **********************/
     (function boot(){
       const savedRuta = localStorage.getItem("ruta_id");
       const demoMode = localStorage.getItem("demo_mode") === "1";
