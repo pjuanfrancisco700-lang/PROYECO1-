@@ -1353,48 +1353,53 @@
     })();
 
     // 🔥 ACTUALIZADOR PRO
-    (function () {
-      const banner = document.getElementById("updateBanner");
-      const updateBtn = document.getElementById("updateNowBtn");
-      let newWorker = null;
+(function () {
+  const banner = document.getElementById("updateBanner");
+  const updateBtn = document.getElementById("updateNowBtn");
+  let newWorker = null;
+  let refreshing = false;
 
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js").then(reg => {
+  if (!banner || !updateBtn) return;
+  if (!("serviceWorker" in navigator)) return;
 
-          reg.addEventListener("updatefound", () => {
-            newWorker = reg.installing;
+  navigator.serviceWorker.register("sw.js").then(reg => {
 
-            newWorker.addEventListener("statechange", () => {
-              if (
-                newWorker.state === "installed" &&
-                navigator.serviceWorker.controller
-              ) {
-                banner.style.display = "flex";
-              }
-            });
-          });
+    reg.addEventListener("updatefound", () => {
+      newWorker = reg.installing;
+      if (!newWorker) return;
 
-          if (reg.waiting) {
-            newWorker = reg.waiting;
-            banner.style.display = "flex";
-          }
-
-          navigator.serviceWorker.addEventListener("controllerchange", () => {
-            window.location.reload();
-          });
-
-        });
-      }
-
-      updateBtn.addEventListener("click", () => {
-        if (newWorker) {
-          newWorker.postMessage({ action: "skipWaiting" });
-        } else {
-          window.location.reload();
+      newWorker.addEventListener("statechange", () => {
+        if (
+          newWorker.state === "installed" &&
+          navigator.serviceWorker.controller
+        ) {
+          banner.style.display = "flex";
         }
-        banner.style.display = "none";
       });
-    })();
+    });
+
+    // 👇 MUY IMPORTANTE: detecta si ya hay update pendiente
+    if (reg.waiting) {
+      newWorker = reg.waiting;
+      banner.style.display = "flex";
+    }
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  });
+
+  updateBtn.addEventListener("click", () => {
+  if (newWorker) {
+    banner.style.display = "none";
+    updateBtn.disabled = true;
+    updateBtn.textContent = "Actualizando...";
+    newWorker.postMessage({ action: "skipWaiting" });
+  }
+});
+})();
   </script>
 </body>
 </html>
