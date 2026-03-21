@@ -18,10 +18,10 @@
       --muted: rgba(11,18,32,.58);
       --line: rgba(11,18,32,.10);
 
-      --shadow: 0 14px 34px rgba(0, 0, 0, .08);
+      --shadow: 0 16px 34px rgba(0, 0, 0, .08);
       --shadow2: 0 8px 18px rgba(0, 0, 0, .06);
 
-      --radius: 22px;
+      --radius: 20px;
       --radius2: 16px;
       --pad: 16px;
       --tap: 52px;
@@ -30,9 +30,9 @@
       --warn:#f4b400;
       --bad:#ff3b30;
 
-      --accent:#0078d4;
+      --accent:#0a84ff;
       --accent2:#2b88d8;
-      --accentSoft: rgba(0,120,212,.12);
+      --accentSoft: rgba(10,132,255,.12);
 
       --sys:"Segoe UI Variable","Segoe UI",Inter,system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
@@ -45,8 +45,8 @@
       font-family:var(--sys);
       color:var(--text);
       background:
-        radial-gradient(800px 520px at 15% -10%, rgba(0,120,212,.16), transparent 60%),
-        radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.14), transparent 58%),
+        radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
+        radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
         linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6);
       overflow-x:hidden;
     }
@@ -79,21 +79,21 @@
       padding: 12px var(--pad);
     }
     .title{ display:flex; flex-direction:column; gap:2px; }
-    .title h1{ margin:0; font-size:16px; font-weight:800; letter-spacing:.2px; }
+    .title h1{ margin:0; font-size:17px; font-weight:900; letter-spacing:.1px; }
     .title .sub{ font-size:12px; color:var(--muted); }
 
     .iconbtn{
       height:40px;
       min-width:40px;
       border-radius: 999px;
-      background: rgba(255,255,255,.78);
+      background: rgba(255,255,255,.82);
       border: 1px solid rgba(11,18,32,.10);
       display:inline-flex;
       align-items:center;
       justify-content:center;
       color: var(--text);
       box-shadow: var(--shadow2);
-      transition: transform .12s ease, filter .12s ease;
+      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
     }
     .iconbtn:active{ transform: translateY(1px) scale(.98); filter: brightness(.98); }
 
@@ -115,10 +115,10 @@
       display:none;
     }
 
-    main{ padding: 14px var(--pad) 22px; flex:1; }
+    main{ padding: 16px var(--pad) 24px; flex:1; }
 
     .card{
-      background: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.93);
       border: 1px solid rgba(11,18,32,.08);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -138,8 +138,8 @@
       box-shadow: 0 18px 32px rgba(0,0,0,.12);
       border: 1px solid rgba(255,255,255,.65);
     }
-    .hero h2{ margin:0; font-size:20px; letter-spacing:.2px; }
-    .hero p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35; }
+    .hero h2{ margin:0; font-size:22px; font-weight:900; letter-spacing:.1px; }
+    .hero p{ margin:0; color:var(--muted); font-size:12px; line-height:1.4; max-width: 360px; }
 
     .field{ padding: 14px 16px 16px; display:flex; flex-direction:column; gap:10px; }
 
@@ -147,7 +147,7 @@
       height: var(--tap);
       border-radius: 16px;
       border: 1px solid rgba(11,18,32,.10);
-      background: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.94);
       color: var(--text);
       font-size:16px;
       padding: 0 14px;
@@ -164,8 +164,8 @@
     .btn{
       height: var(--tap);
       border-radius: 16px;
-      border: 1px solid rgba(58,160,255,.22);
-      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(58,160,255,.92));
+      border: 1px solid rgba(58,160,255,.20);
+      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94));
       color: white;
       font-weight: 800;
       font-size: 15px;
@@ -176,7 +176,7 @@
     .btn:active{ transform: translateY(1px) scale(.99); filter: brightness(.98); }
 
     .btn.secondary{
-      background: rgba(255,255,255,.88);
+      background: rgba(255,255,255,.90);
       border: 1px solid rgba(11,18,32,.12);
       box-shadow: 0 10px 18px rgba(0,0,0,.05);
       font-weight: 800;
@@ -190,7 +190,7 @@
       padding:6px 10px;
       border-radius:999px;
       border:1px solid rgba(11,18,32,.10);
-      background: rgba(255,255,255,.86);
+      background: rgba(255,255,255,.88);
       color: rgba(11,18,32,.78);
       white-space:nowrap;
       box-shadow: 0 10px 18px rgba(0,0,0,.04);
@@ -201,7 +201,7 @@
       padding: 14px 14px;
       border-radius: var(--radius);
       border: 1px solid rgba(11,18,32,.08);
-      background: rgba(255,255,255,.86);
+      background: rgba(255,255,255,.88);
       display:flex;
       flex-direction:column;
       gap:10px;
@@ -214,18 +214,23 @@
       padding: 14px;
       border-radius: 18px;
       border: 1px solid rgba(11,18,32,.08);
-      background: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.94);
       display:flex;
       flex-direction:column;
       gap:10px;
       box-shadow: 0 12px 22px rgba(0,0,0,.05);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .plan:active{
+      transform: scale(.995);
+      box-shadow: 0 10px 18px rgba(0,0,0,.05);
     }
     .planTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
     .planName{ font-family: var(--mono); font-size:12px; color: rgba(11,18,32,.78); letter-spacing:.2px; }
     .planBal{
-      font-size: 26px;
+      font-size: 27px;
       font-weight: 900;
-      letter-spacing: .2px;
+      letter-spacing: 0;
       color: var(--text);
     }
     .planBal small{ font-size: 12px; color: var(--muted); font-weight: 800; margin-left: 6px; }
@@ -245,7 +250,7 @@
       height:44px;
       border-radius: 14px;
       border: 1px solid rgba(11,18,32,.10);
-      background: rgba(255,255,255,.88);
+      background: rgba(255,255,255,.90);
       color: rgba(11,18,32,.88);
       font-weight: 900;
       font-size: 13px;
@@ -255,10 +260,20 @@
     .mini:active{ transform: translateY(1px) scale(.99); filter: brightness(.985); }
 
     .mini.primary{
-      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(58,160,255,.92));
+      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94));
       border: 1px solid rgba(58,160,255,.20);
       color:#fff;
       box-shadow: 0 16px 26px rgba(58,160,255,.16);
+    }
+
+    .microFooter{
+      margin-top: 18px;
+      padding: 4px 10px 0;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.45;
+      letter-spacing: .2px;
+      color: rgba(11,18,32,.38);
     }
 
     .toast{
@@ -294,7 +309,7 @@
       width: min(520px, 100%);
       border-radius: 26px;
       border: 1px solid rgba(11,18,32,.10);
-      background: rgba(255,255,255,.94);
+      background: rgba(255,255,255,.95);
       backdrop-filter: blur(18px) saturate(150%);
       -webkit-backdrop-filter: blur(18px) saturate(150%);
       box-shadow: 0 30px 80px rgba(0,0,0,.16);
@@ -325,7 +340,7 @@
       padding: 12px;
       border-radius: 18px;
       border: 1px solid rgba(11,18,32,.10);
-      background: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.93);
       display:flex;
       flex-direction:column;
       gap:8px;
@@ -354,9 +369,9 @@
     .histOut{ border-color: rgba(244,180,0,.22); background: rgba(244,180,0,.08); }
     .histIn{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
     .histApproved{
-  border-color: rgba(0,120,212,.22);
-  background: rgba(0,120,212,.08);
-}
+      border-color: rgba(0,120,212,.22);
+      background: rgba(0,120,212,.08);
+    }
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
     .footerBar{
@@ -420,7 +435,7 @@
           <div class="hero">
             <div class="logo"></div>
             <h2>Ingresar ruta</h2>
-            <p>Escribe tu ID de ruta para ver disponibilidad por plan, registrar uso, transferir recursos y revisar tu historial de 24 horas.</p>
+            <p>Consulta disponibilidad, registra uso, transfiere recursos y revisa el historial reciente.</p>
           </div>
           <div class="field">
             <input class="input" inputmode="numeric" pattern="[0-9]*" id="inpRuta" placeholder="Ej: 17029" />
@@ -460,6 +475,11 @@
           <div id="plansList" class="plans"></div>
         </div>
       </section>
+
+      <div class="microFooter">
+        Built with Google Sheets, Apps Script, GitHub and AI-assisted workflow.<br>
+        Crafted by Sergio Pascual.
+      </div>
     </main>
     
   <div class="toast" id="toast"></div>
@@ -723,7 +743,7 @@
         return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
       }
 
-        if (params.action === "transfer_respond") {
+      if (params.action === "transfer_respond") {
         state.history = [{
           id: String(Date.now()),
           fecha: new Date().toISOString(),
@@ -853,22 +873,23 @@
     function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
 
     function historyTypeLabel(type){
-  return {
-    USE: "Uso registrado",
-    TRANSFER_OUT: "Transferencia enviada",
-    TRANSFER_IN: "Transferencia recibida",
-    TRANSFER_APPROVED: "Transferencia aceptada",
-    TRANSFER_REJECTED: "Transferencia rechazada"
-  }[type] || "Movimiento";
-}
-   function historyTypeClass(type){
-  if (type === "USE") return "histUse";
-  if (type === "TRANSFER_OUT") return "histOut";
-  if (type === "TRANSFER_IN") return "histIn";
-  if (type === "TRANSFER_APPROVED") return "histApproved";
-  if (type === "TRANSFER_REJECTED") return "histReject";
-  return "";
-}
+      return {
+        USE: "Uso registrado",
+        TRANSFER_OUT: "Transferencia enviada",
+        TRANSFER_IN: "Transferencia recibida",
+        TRANSFER_APPROVED: "Transferencia aceptada",
+        TRANSFER_REJECTED: "Transferencia rechazada"
+      }[type] || "Movimiento";
+    }
+
+    function historyTypeClass(type){
+      if (type === "USE") return "histUse";
+      if (type === "TRANSFER_OUT") return "histOut";
+      if (type === "TRANSFER_IN") return "histIn";
+      if (type === "TRANSFER_APPROVED") return "histApproved";
+      if (type === "TRANSFER_REJECTED") return "histReject";
+      return "";
+    }
 
     function renderHome() {
       els.hdrTitle.textContent = "Recursos";
