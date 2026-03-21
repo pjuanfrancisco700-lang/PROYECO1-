@@ -1,4 +1,4 @@
-const CACHE_NAME = "recursos-v1";
+const CACHE_NAME = "recursos-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
