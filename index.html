@@ -314,6 +314,8 @@
       display:flex;
       flex-direction:column;
       gap:10px;
+      max-height: min(78vh, 760px);
+      overflow:auto;
     }
     .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .help{ font-size:12px; color:var(--muted); line-height:1.35; }
@@ -348,6 +350,14 @@
 
     .ok{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
     .danger{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
+    .histUse{ border-color: rgba(0,120,212,.18); background: rgba(0,120,212,.05); }
+    .histOut{ border-color: rgba(244,180,0,.22); background: rgba(244,180,0,.08); }
+    .histIn{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
+    .histApproved{
+  border-color: rgba(0,120,212,.22);
+  background: rgba(0,120,212,.08);
+}
+    .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
     .footerBar{
       position: sticky;
@@ -376,6 +386,14 @@
         </div>
 
         <div style="display:flex; gap:10px; align-items:center;">
+          <button class="iconbtn" id="btnHistory" aria-label="Historial" title="Historial" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12a9 9 0 1 0 3-6.708" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M3 4v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
           <button class="iconbtn bell" id="btnBell" aria-label="Notificaciones" title="Notificaciones" style="display:none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -402,7 +420,7 @@
           <div class="hero">
             <div class="logo"></div>
             <h2>Ingresar ruta</h2>
-            <p>Escribe tu ID de ruta para ver disponibilidad por plan, registrar uso y transferir recursos.</p>
+            <p>Escribe tu ID de ruta para ver disponibilidad por plan, registrar uso, transferir recursos y revisar tu historial de 24 horas.</p>
           </div>
           <div class="field">
             <input class="input" inputmode="numeric" pattern="[0-9]*" id="inpRuta" placeholder="Ej: 17029" />
@@ -443,14 +461,7 @@
         </div>
       </section>
     </main>
-
-    <div class="footerBar" id="footerBar" style="display:none;">
-      <div class="footerBtns">
-        <button class="btn secondary" id="btnTransfer" style="display:none;">Transferir</button>
-      </div>
-    </div>
-  </div>
-
+    
   <div class="toast" id="toast"></div>
 
   <div class="modalBack" id="modalBack">
@@ -490,6 +501,7 @@
       saldo: {},
       saldoEstado: {},
       pendientes: [],
+      history: [],
       lastUpdated: null,
       pollTimer: null,
       demo: false,
@@ -498,6 +510,7 @@
     const els = {
       hdrTitle: $("hdrTitle"),
       hdrSub: $("hdrSub"),
+      btnHistory: $("btnHistory"),
       btnBell: $("btnBell"),
       bellBadge: $("bellBadge"),
       btnLogout: $("btnLogout"),
@@ -511,7 +524,7 @@
       lblUpdated: $("lblUpdated"),
       plansList: $("plansList"),
       btnRefresh: $("btnRefresh"),
-      btnTransfer: $("btnTransfer"),
+
       toast: $("toast"),
       modalBack: $("modalBack"),
       modalTitle: $("modalTitle"),
@@ -633,12 +646,22 @@
             M2601378: { valor: 111, negativo: false, color: "normal" },
             M2602303: { valor: 365, negativo: false, color: "normal" }
           },
-          pendientes: [{ id: 12, fecha: now.toISOString(), de: "17030", para: params.ruta, plan:"M2601310", cantidad: 5, estado:"PENDIENTE" }]
+          pendientes: [{ id: 12, fecha: now.toISOString(), de: "17030", para: params.ruta, plan:"M2601310", cantidad: 5, estado:"PENDIENTE" }],
+          history: [
+            { id: "1", fecha: now.toISOString(), tipo: "USE", de: params.ruta, para: "", plan: "M2601310", cantidad: 10 },
+            { id: "2", fecha: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_OUT", de: params.ruta, para: "17030", plan: "M2601377", cantidad: 8 },
+            { id: "3", fecha: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_IN", de: "17031", para: params.ruta, plan: "M2601378", cantidad: 5 },
+            { id: "4", fecha: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_REJECTED", de: params.ruta, para: "17033", plan: "M2602303", cantidad: 4 }
+          ]
         });
       }
 
       if (params.action === "notifications") {
         return Promise.resolve({ ok:true, ruta: params.ruta, pendientes: state.pendientes });
+      }
+
+      if (params.action === "history") {
+        return Promise.resolve({ ok:true, ruta: params.ruta, history: state.history || [] });
       }
 
       if (params.action === "use") {
@@ -652,6 +675,15 @@
           negativo: next < 0,
           color: next < 0 ? "red" : "normal"
         };
+        state.history = [{
+          id: String(Date.now()),
+          fecha: new Date().toISOString(),
+          tipo: "USE",
+          de: state.ruta,
+          para: "",
+          plan,
+          cantidad: c
+        }, ...(state.history || [])].slice(0, 30);
         return Promise.resolve({
           ok:true,
           before: current,
@@ -678,11 +710,32 @@
           negativo: next < 0,
           color: next < 0 ? "red" : "normal"
         };
+        state.history = [{
+          id: String(Date.now()),
+          fecha: new Date().toISOString(),
+          tipo: "TRANSFER_OUT",
+          de: state.ruta,
+          para: String(params.para || ""),
+          plan,
+          cantidad: qty
+        }, ...(state.history || [])].slice(0, 30);
 
         return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
       }
 
-      if (params.action === "transfer_respond") return Promise.resolve({ ok:true });
+        if (params.action === "transfer_respond") {
+        state.history = [{
+          id: String(Date.now()),
+          fecha: new Date().toISOString(),
+          tipo: params.decision === "APROBAR" ? "TRANSFER_APPROVED" : "TRANSFER_REJECTED",
+          de: "17030",
+          para: state.ruta,
+          plan: "M2601310",
+          cantidad: 5
+        }, ...(state.history || [])].slice(0, 30);
+        return Promise.resolve({ ok:true });
+      }
+
       return Promise.resolve({ ok:true });
     }
 
@@ -705,6 +758,7 @@
           saldo: state.saldo,
           saldoEstado: state.saldoEstado,
           pendientes: state.pendientes,
+          history: state.history,
           lastUpdated: state.lastUpdated ? state.lastUpdated.toISOString() : null,
         };
         localStorage.setItem(cacheKey(state.ruta), JSON.stringify(payload));
@@ -754,6 +808,7 @@
 
     function syncInBackground(){
       refreshSaldo().catch(() => {});
+      refreshHistory().catch(() => {});
     }
 
     function setScreen(name) {
@@ -797,6 +852,24 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
 
+    function historyTypeLabel(type){
+  return {
+    USE: "Uso registrado",
+    TRANSFER_OUT: "Transferencia enviada",
+    TRANSFER_IN: "Transferencia recibida",
+    TRANSFER_APPROVED: "Transferencia aceptada",
+    TRANSFER_REJECTED: "Transferencia rechazada"
+  }[type] || "Movimiento";
+}
+   function historyTypeClass(type){
+  if (type === "USE") return "histUse";
+  if (type === "TRANSFER_OUT") return "histOut";
+  if (type === "TRANSFER_IN") return "histIn";
+  if (type === "TRANSFER_APPROVED") return "histApproved";
+  if (type === "TRANSFER_REJECTED") return "histReject";
+  return "";
+}
+
     function renderHome() {
       els.hdrTitle.textContent = "Recursos";
       els.hdrSub.textContent = `Ruta ${state.ruta || "—"}`;
@@ -804,9 +877,10 @@
       els.lblPeso.textContent = `PESO ${state.peso ?? "—"}%`;
       els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
 
+      els.btnHistory.style.display = "inline-flex";
       els.btnBell.style.display = "inline-flex";
       els.btnLogout.style.display = "inline-flex";
-
+     
       const plans = Object.keys(state.saldo || {}).sort();
       els.plansList.innerHTML = "";
 
@@ -862,6 +936,7 @@
         state.saldoEstado = (cached.saldoEstado || {});
         if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (cached.pendientes || []);
+        state.history = (cached.history || []);
         state.lastUpdated = cached.lastUpdated ? new Date(cached.lastUpdated) : new Date();
         setScreen("home");
         renderHome();
@@ -872,6 +947,7 @@
         state.saldo = {};
         state.saldoEstado = {};
         state.pendientes = [];
+        state.history = [];
         state.lastUpdated = new Date();
         setScreen("home");
         renderHome();
@@ -887,6 +963,7 @@
         state.saldoEstado = (data.saldo_estado || {});
         if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (data.pendientes || []);
+        state.history = (data.history || []);
         state.lastUpdated = new Date();
 
         localStorage.setItem("ruta_id", state.ruta);
@@ -914,8 +991,16 @@
       state.saldoEstado = (data.saldo_estado || {});
       if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
       state.pendientes = (data.pendientes || []);
+      state.history = (data.history || state.history || []);
       state.lastUpdated = new Date();
       renderHome();
+      saveCache();
+    }
+
+    async function refreshHistory() {
+      if (!state.ruta) return;
+      const data = await apiCallDedup(`history:${state.ruta}`, { action:"history", ruta: state.ruta });
+      state.history = (data.history || []);
       saveCache();
     }
 
@@ -927,6 +1012,7 @@
           const d = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
           state.pendientes = d.pendientes || [];
           setBadge(state.pendientes.length);
+          refreshHistory().catch(() => {});
           saveCache();
         } catch (e) {}
       }, POLL_MS);
@@ -949,11 +1035,13 @@
       state.saldo = {};
       state.saldoEstado = {};
       state.pendientes = [];
+      state.history = [];
       state.lastUpdated = null;
       localStorage.removeItem("ruta_id");
       localStorage.removeItem("demo_mode");
       state.demo = false;
 
+      els.btnHistory.style.display = "none";
       els.btnBell.style.display = "none";
       els.btnLogout.style.display = "none";
       setBadge(0);
@@ -971,7 +1059,9 @@
 
       $("useCancel").onclick = closeModal;
       $("useSend").onclick = async () => {
-        const qty = Number(($('useQty').value || "").trim());
+        const raw = String(($('useQty').value || "")).trim();
+        if (!/^\d+$/.test(raw)) return showToast("Cantidad inválida");
+        const qty = Number(raw);
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
         closeModal();
@@ -1024,12 +1114,15 @@
 
       $("trCancel").onclick = closeModal;
       $("trSend").onclick = async () => {
-        const para = String(($('trPara').value || "").trim());
+        const para = String(($('trPara').value || "")).trim();
         const plan = $('trPlan').value;
-        const qty = Number(($('trQty').value || "").trim());
-        const current = Number(state.saldo?.[plan] || 0);
-
+        const rawQty = String(($('trQty').value || "")).trim();
         if (!para) return showToast("Falta ruta destino");
+        if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
+        if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
+
+        const qty = Number(rawQty);
+        const current = Number(state.saldo?.[plan] || 0);
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
         if (qty > current) {
@@ -1097,6 +1190,7 @@
             showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
             await apiCall({ action:"transfer_respond", id, decision: dec });
             await refreshSaldo();
+            await refreshHistory().catch(() => {});
             closeModal();
             openNotificationsModal();
             showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
@@ -1105,6 +1199,52 @@
           }
         });
       });
+    }
+
+    function openHistoryModal() {
+      const items = (state.history || []).slice().sort((a,b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+      if (!items.length) {
+        openModal("Historial 24 horas", `
+          <div class="help">Aquí verás tus movimientos más recientes de las últimas 24 horas.</div>
+          <div class="help">No hay movimientos recientes.</div>
+          <button class="btn secondary" id="hClose">Cerrar</button>
+        `);
+        $('hClose').onclick = closeModal;
+        return;
+      }
+
+      const html = items.map(m => {
+        const type = historyTypeLabel(m.tipo);
+        const cls = historyTypeClass(m.tipo);
+        const metaDe = m.de ? `<div class="muted" style="font-size:12px; margin-top:6px;">De <span class="pill">${escapeHtml(m.de)}</span></div>` : "";
+        const metaPara = m.para ? `<div class="muted" style="font-size:12px; margin-top:6px;">Para <span class="pill">${escapeHtml(m.para)}</span></div>` : "";
+
+        return `
+          <div class="item ${cls}">
+            <div class="itemTop">
+              <div>
+                <div class="itemMeta">${escapeHtml(fmtTime(m.fecha))}</div>
+                <div style="font-size:14px; font-weight:900; margin-top:4px;">${escapeHtml(type)}</div>
+                <div class="muted" style="font-size:12px; margin-top:6px;">
+                  Plan <span class="pill">${escapeHtml(m.plan || "—")}</span>
+                </div>
+                ${metaDe}
+                ${metaPara}
+              </div>
+              <div class="itemAmt">${Number(m.cantidad || 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      openModal("Historial 24 horas", `
+        <div class="help">Este resumen muestra únicamente los movimientos visibles de las últimas 24 horas.</div>
+        <div class="list">${html}</div>
+        <button class="btn secondary" id="hClose">Cerrar</button>
+      `);
+
+      $('hClose').onclick = closeModal;
     }
 
     els.btnEntrar.addEventListener("click", async () => {
@@ -1118,13 +1258,13 @@
     });
 
     els.btnRefresh.addEventListener("click", async () => {
-      try{ showToast("Actualizando..."); await refreshSaldo(); showToast("Actualizado"); }
+      try{ showToast("Actualizando..."); await refreshSaldo(); await refreshHistory().catch(() => {}); showToast("Actualizado"); }
       catch(e){ showToast(e.message || "Error"); }
     });
 
     els.btnLogout.addEventListener("click", logout);
+    els.btnHistory.addEventListener("click", openHistoryModal);
     els.btnBell.addEventListener("click", openNotificationsModal);
-    els.btnTransfer.addEventListener("click", () => openTransferModal(null));
 
     els.plansList.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
@@ -1148,6 +1288,7 @@
         els.inpRuta.value = savedRuta;
         login(savedRuta, demoMode).catch(() => logout());
       } else {
+        els.btnHistory.style.display = "none";
         els.btnBell.style.display = "none";
         els.btnLogout.style.display = "none";
       }
