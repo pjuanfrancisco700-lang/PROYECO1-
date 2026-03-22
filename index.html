@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <link rel="manifest" href="manifest.json?v=2">
-<link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -98,6 +98,11 @@
       transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
     }
     .iconbtn:active{ transform: translateY(1px) scale(.98); filter: brightness(.98); }
+    .iconbtn[disabled], .btn[disabled], .mini[disabled], .ghost[disabled]{
+      opacity:.55;
+      pointer-events:none;
+      filter:grayscale(.1);
+    }
 
     .bell{ position:relative; }
     .badge{
@@ -376,16 +381,6 @@
     }
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
-    .footerBar{
-      position: sticky;
-      bottom: 0;
-      background: rgba(242,242,247,.78);
-      border-top: 1px solid var(--line);
-      backdrop-filter: blur(18px) saturate(140%);
-      -webkit-backdrop-filter: blur(18px) saturate(140%);
-    }
-    .footerBtns{ padding: 12px var(--pad); display:flex; gap:10px; }
-
     @media (prefers-reduced-motion: reduce) {
       *{ scroll-behavior:auto !important; }
     }
@@ -478,60 +473,59 @@
         </div>
       </section>
 
-     <div class="microFooter">
-  Construido con Google Sheets, Apps Script, GitHub y flujo de trabajo asistido por IA.<br>
-  Elaborado por Sergio Pascual.
-</div>
-    </main>
-    
-  <div class="toast" id="toast"></div>
-    <div id="updateBanner" style="
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 24px);
-  max-width: 520px;
-  background: rgba(15, 23, 42, 0.96);
-  color: #fff;
-  padding: 12px 14px;
-  border-radius: 14px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.18);
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  z-index: 99999;
-">
-  <span style="font-size:14px;">
-    Nueva versión disponible
-  </span>
-
-  <button id="updateNowBtn" style="
-    border: 0;
-    background: #4A90E2;
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-  ">
-    Actualizar
-  </button>
-</div>
-
-  <div class="modalBack" id="modalBack">
-    <div class="modal" id="modal">
-      <div class="modalHead">
-        <strong id="modalTitle">—</strong>
-        <button class="iconbtn" id="modalClose" aria-label="Cerrar" title="Cerrar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </button>
+      <div class="microFooter">
+        Construido con Google Sheets, Apps Script, GitHub y flujo de trabajo asistido por IA.<br>
+        Elaborado por Sergio Pascual.
       </div>
-      <div class="modalBody" id="modalBody"></div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <div id="updateBanner" style="
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 520px;
+      background: rgba(15, 23, 42, 0.96);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.18);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 99999;
+    ">
+      <span style="font-size:14px;">Nueva versión disponible</span>
+      <button id="updateNowBtn" style="
+        border: 0;
+        background: #4A90E2;
+        color: #fff;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+      ">
+        Actualizar
+      </button>
+    </div>
+
+    <div class="modalBack" id="modalBack">
+      <div class="modal" id="modal">
+        <div class="modalHead">
+          <strong id="modalTitle">—</strong>
+          <button class="iconbtn" id="modalClose" aria-label="Cerrar" title="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modalBody" id="modalBody"></div>
+      </div>
     </div>
   </div>
 
@@ -561,6 +555,10 @@
       lastUpdated: null,
       pollTimer: null,
       demo: false,
+      hydrated: false,
+      busy: false,
+      loginSeq: 0,
+      lastMutationAt: 0,
     };
 
     const els = {
@@ -580,7 +578,6 @@
       lblUpdated: $("lblUpdated"),
       plansList: $("plansList"),
       btnRefresh: $("btnRefresh"),
-
       toast: $("toast"),
       modalBack: $("modalBack"),
       modalTitle: $("modalTitle"),
@@ -640,9 +637,7 @@
 
         const raw = await res.text();
 
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         try {
           return JSON.parse(raw);
@@ -675,14 +670,8 @@
         }
       }
 
-      if (!data) {
-        throw new Error(lastErr?.message || "No se pudo conectar con el servidor");
-      }
-
-      if (!data || data.ok !== true) {
-        const msg = (data && data.error) ? data.error : "Respuesta inválida del servidor";
-        throw new Error(msg);
-      }
+      if (!data) throw new Error(lastErr?.message || "No se pudo conectar con el servidor");
+      if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : "Respuesta inválida del servidor");
       return data;
     }
 
@@ -776,7 +765,7 @@
           cantidad: qty
         }, ...(state.history || [])].slice(0, 30);
 
-        return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
+        return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000, after_origen: next });
       }
 
       if (params.action === "transfer_respond") {
@@ -845,26 +834,34 @@
       state.saldoEstado = out;
     }
 
-    function applyDelta(plan, delta){
-      const cur = Number(state.saldo?.[plan] || 0);
-      const next = cur + Number(delta || 0);
-      state.saldo = { ...(state.saldo || {}), [plan]: next };
-      state.saldoEstado = {
-        ...(state.saldoEstado || {}),
-        [plan]: {
-          valor: next,
-          negativo: next < 0,
-          color: next < 0 ? "red" : "normal"
-        }
-      };
-      state.lastUpdated = new Date();
-      renderHome();
-      saveCache();
+    function setInteractiveDisabled(disabled){
+      const targets = [els.btnRefresh, els.btnHistory, els.btnBell];
+      targets.forEach(el => { if (el) el.disabled = !!disabled; });
+      els.plansList.querySelectorAll("button").forEach(btn => btn.disabled = !!disabled);
     }
 
-    function syncInBackground(){
-      refreshSaldo().catch(() => {});
-      refreshHistory().catch(() => {});
+    function canMutate() {
+      if (!state.ruta) {
+        showToast("Primero inicia sesión");
+        return false;
+      }
+      if (!state.hydrated) {
+        showToast("Espera un momento, sincronizando datos...");
+        return false;
+      }
+      if (state.busy) {
+        showToast("Espera a que termine la operación...");
+        return false;
+      }
+      return true;
+    }
+
+    function syncInBackground(opts = {}) {
+      const { skipSaldo = false, delayMs = 1200 } = opts;
+      setTimeout(() => {
+        if (!skipSaldo) refreshSaldo().catch(() => {});
+        refreshHistory().catch(() => {});
+      }, delayMs);
     }
 
     function setScreen(name) {
@@ -937,12 +934,13 @@
       els.btnHistory.style.display = "inline-flex";
       els.btnBell.style.display = "inline-flex";
       els.btnLogout.style.display = "inline-flex";
-     
+
       const plans = Object.keys(state.saldo || {}).sort();
       els.plansList.innerHTML = "";
 
       if (!plans.length) {
         els.plansList.innerHTML = `<div class="help">No se encontraron planes en el saldo. Revisa los headers en Google Sheets.</div>`;
+        setInteractiveDisabled(!state.hydrated || state.busy);
         return;
       }
 
@@ -978,6 +976,7 @@
       });
 
       setBadge((state.pendientes || []).length);
+      setInteractiveDisabled(!state.hydrated || state.busy);
     }
 
     async function login(ruta, demo=false) {
@@ -985,7 +984,12 @@
       const r = String(ruta || "").trim();
       if (!r) return showToast("Escribe la ruta");
 
+      const seq = ++state.loginSeq;
+      state.hydrated = false;
+      state.busy = true;
+
       const cached = loadCache(r);
+
       if (cached && cached.saldo) {
         state.ruta = String(cached.ruta || r);
         state.peso = (cached.peso ?? null);
@@ -1001,6 +1005,7 @@
         showToast("Cargando datos…", FAST_TOAST_MS);
       } else {
         state.ruta = r;
+        state.peso = null;
         state.saldo = {};
         state.saldoEstado = {};
         state.pendientes = [];
@@ -1014,6 +1019,8 @@
 
       try {
         const data = await apiCallDedup(`login:${r}`, { action:"login", ruta:r });
+        if (seq !== state.loginSeq) return;
+
         state.ruta = String(data.ruta || r);
         state.peso = (data.peso ?? null);
         state.saldo = (data.saldo || {});
@@ -1027,21 +1034,32 @@
         localStorage.setItem("demo_mode", state.demo ? "1" : "0");
         saveCache();
 
+        state.hydrated = true;
+        state.busy = false;
+
         setScreen("home");
         renderHome();
         startPolling();
         showToast("Listo", FAST_TOAST_MS);
       } catch(e) {
+        if (seq !== state.loginSeq) return;
+        state.busy = false;
+
         if (cached) {
+          state.hydrated = false;
+          renderHome();
           showToast("Sin conexión. Mostrando últimos datos.", 2600);
           return;
         }
+        state.hydrated = false;
         throw e;
       }
     }
 
     async function refreshSaldo() {
       if (!state.ruta) return;
+      if (Date.now() - state.lastMutationAt < 1200) return;
+
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
       state.peso = (data.peso ?? state.peso);
       state.saldo = (data.saldo || state.saldo);
@@ -1094,9 +1112,14 @@
       state.pendientes = [];
       state.history = [];
       state.lastUpdated = null;
+      state.demo = false;
+      state.hydrated = false;
+      state.busy = false;
+      state.loginSeq = 0;
+      state.lastMutationAt = 0;
+
       localStorage.removeItem("ruta_id");
       localStorage.removeItem("demo_mode");
-      state.demo = false;
 
       els.btnHistory.style.display = "none";
       els.btnBell.style.display = "none";
@@ -1116,16 +1139,20 @@
 
       $("useCancel").onclick = closeModal;
       $("useSend").onclick = async () => {
+        if (!canMutate()) return;
+
         const raw = String(($('useQty').value || "")).trim();
         if (!/^\d+$/.test(raw)) return showToast("Cantidad inválida");
+
         const qty = Number(raw);
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
+        state.busy = true;
         closeModal();
-        applyDelta(plan, -qty);
-        showToast("Guardado (sincronizando…)", FAST_TOAST_MS);
+        renderHome();
+        showToast("Guardando...", FAST_TOAST_MS);
 
-        try{
+        try {
           const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
 
           if (typeof res.after !== "undefined") {
@@ -1137,15 +1164,18 @@
               color: res.color || (next < 0 ? "red" : "normal")
             };
             state.lastUpdated = new Date();
+            state.lastMutationAt = Date.now();
             renderHome();
             saveCache();
           }
 
-          syncInBackground();
-          showToast(res.negativo ? `Uso registrado. Sobregiro: ${res.sobregiro}` : "Uso registrado", 2200);
-        } catch(e){
-          applyDelta(plan, +qty);
+          syncInBackground({ skipSaldo: true, delayMs: 1200 });
+          showToast(res.negativo ? `Uso registrado. Sobregiro: ${res.sobregiro || 0}` : "Uso registrado", 2200);
+        } catch(e) {
           showToast(e.message || "Error", 2600);
+        } finally {
+          state.busy = false;
+          renderHome();
         }
       };
     }
@@ -1171,9 +1201,12 @@
 
       $("trCancel").onclick = closeModal;
       $("trSend").onclick = async () => {
-        const para = String(($('trPara').value || "")).trim();
-        const plan = $('trPlan').value;
-        const rawQty = String(($('trQty').value || "")).trim();
+        if (!canMutate()) return;
+
+        const para = String(($("trPara").value || "")).trim();
+        const plan = $("trPlan").value;
+        const rawQty = String(($("trQty").value || "")).trim();
+
         if (!para) return showToast("Falta ruta destino");
         if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
         if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
@@ -1181,22 +1214,37 @@
         const qty = Number(rawQty);
         const current = Number(state.saldo?.[plan] || 0);
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
+        if (qty > current) return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
 
-        if (qty > current) {
-          return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
-        }
-
+        state.busy = true;
         closeModal();
-        applyDelta(plan, -qty);
-        showToast("Enviada (sincronizando…)", FAST_TOAST_MS);
+        renderHome();
+        showToast("Enviando...", FAST_TOAST_MS);
 
-        try{
-          await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          syncInBackground();
+        try {
+          const res = await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
+
+          if (typeof res.after_origen !== "undefined") {
+            const next = Number(res.after_origen || 0);
+            state.saldo[plan] = next;
+            state.saldoEstado[plan] = {
+              valor: next,
+              negativo: next < 0,
+              color: next < 0 ? "red" : "normal"
+            };
+            state.lastUpdated = new Date();
+            state.lastMutationAt = Date.now();
+            renderHome();
+            saveCache();
+          }
+
+          syncInBackground({ skipSaldo: true, delayMs: 1200 });
           showToast("Transferencia enviada", FAST_TOAST_MS);
-        } catch(e){
-          applyDelta(plan, +qty);
+        } catch(e) {
           showToast(e.message || "Error", 2600);
+        } finally {
+          state.busy = false;
+          renderHome();
         }
       };
     }
@@ -1241,9 +1289,12 @@
 
       els.modalBody.querySelectorAll("[data-dec]").forEach(btn => {
         btn.addEventListener("click", async () => {
+          if (!canMutate()) return;
           const id = btn.getAttribute("data-id");
           const dec = btn.getAttribute("data-dec");
-          try{
+          try {
+            state.busy = true;
+            renderHome();
             showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
             await apiCall({ action:"transfer_respond", id, decision: dec });
             await refreshSaldo();
@@ -1251,8 +1302,11 @@
             closeModal();
             openNotificationsModal();
             showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
-          } catch(e){
+          } catch(e) {
             showToast(e.message || "Error");
+          } finally {
+            state.busy = false;
+            renderHome();
           }
         });
       });
@@ -1305,18 +1359,25 @@
     }
 
     els.btnEntrar.addEventListener("click", async () => {
-      try{ await login(els.inpRuta.value, false); }
-      catch(e){ showToast(e.message || "Error"); }
+      try { await login(els.inpRuta.value, false); }
+      catch(e) { showToast(e.message || "Error"); }
     });
 
     els.btnDemo.addEventListener("click", async () => {
-      try{ await login(els.inpRuta.value || "17029", true); }
-      catch(e){ showToast(e.message || "Error"); }
+      try { await login(els.inpRuta.value || "17029", true); }
+      catch(e) { showToast(e.message || "Error"); }
     });
 
     els.btnRefresh.addEventListener("click", async () => {
-      try{ showToast("Actualizando..."); await refreshSaldo(); await refreshHistory().catch(() => {}); showToast("Actualizado"); }
-      catch(e){ showToast(e.message || "Error"); }
+      if (!state.ruta) return;
+      try {
+        showToast("Actualizando...");
+        await refreshSaldo();
+        await refreshHistory().catch(() => {});
+        showToast("Actualizado");
+      } catch(e) {
+        showToast(e.message || "Error");
+      }
     });
 
     els.btnLogout.addEventListener("click", logout);
@@ -1335,7 +1396,6 @@
 
     els.modalClose.addEventListener("click", closeModal);
     els.modalBack.addEventListener("click", (e) => { if (e.target === els.modalBack) closeModal(); });
-
     els.inpRuta.addEventListener("keydown", (e) => { if (e.key === "Enter") els.btnEntrar.click(); });
 
     (function boot(){
@@ -1348,58 +1408,51 @@
         els.btnHistory.style.display = "none";
         els.btnBell.style.display = "none";
         els.btnLogout.style.display = "none";
-
       }
     })();
 
-    // 🔥 ACTUALIZADOR PRO
-(function () {
-  const banner = document.getElementById("updateBanner");
-  const updateBtn = document.getElementById("updateNowBtn");
-  let newWorker = null;
-  let refreshing = false;
+    (function () {
+      const banner = document.getElementById("updateBanner");
+      const updateBtn = document.getElementById("updateNowBtn");
+      let newWorker = null;
+      let refreshing = false;
 
-  if (!banner || !updateBtn) return;
-  if (!("serviceWorker" in navigator)) return;
+      if (!banner || !updateBtn) return;
+      if (!("serviceWorker" in navigator)) return;
 
-  navigator.serviceWorker.register("sw.js").then(reg => {
+      navigator.serviceWorker.register("sw.js").then(reg => {
+        reg.addEventListener("updatefound", () => {
+          newWorker = reg.installing;
+          if (!newWorker) return;
 
-    reg.addEventListener("updatefound", () => {
-      newWorker = reg.installing;
-      if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              banner.style.display = "flex";
+            }
+          });
+        });
 
-      newWorker.addEventListener("statechange", () => {
-        if (
-          newWorker.state === "installed" &&
-          navigator.serviceWorker.controller
-        ) {
+        if (reg.waiting) {
+          newWorker = reg.waiting;
           banner.style.display = "flex";
         }
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
       });
-    });
 
-    // 👇 MUY IMPORTANTE: detecta si ya hay update pendiente
-    if (reg.waiting) {
-      newWorker = reg.waiting;
-      banner.style.display = "flex";
-    }
-
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-  });
-
-  updateBtn.addEventListener("click", () => {
-  if (newWorker) {
-    banner.style.display = "none";
-    updateBtn.disabled = true;
-    updateBtn.textContent = "Actualizando...";
-    newWorker.postMessage({ action: "skipWaiting" });
-  }
-});
-})();
+      updateBtn.addEventListener("click", () => {
+        if (newWorker) {
+          banner.style.display = "none";
+          updateBtn.disabled = true;
+          updateBtn.textContent = "Actualizando...";
+          newWorker.postMessage({ action: "skipWaiting" });
+        }
+      });
+    })();
   </script>
 </body>
 </html>
