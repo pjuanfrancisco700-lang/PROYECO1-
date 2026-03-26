@@ -1145,28 +1145,31 @@
         const para = String(($('trPara').value || "")).trim();
         const plan = $('trPlan').value;
         const rawQty = String(($('trQty').value || "")).trim();
+
         if (!para) return showToast("Falta ruta destino");
         if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
         if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
 
         const qty = Number(rawQty);
         const current = Number(state.saldo?.[plan] || 0);
-        if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
+        if (!qty || qty <= 0) return showToast("Cantidad inválida");
         if (qty > current) {
           return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
         }
 
         closeModal();
-        applyDelta(plan, -qty);
-        showToast("Enviada (sincronizando…)", FAST_TOAST_MS);
+        showToast("Enviando…", FAST_TOAST_MS);
 
         try{
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          syncInBackground();
-          showToast("Transferencia enviada", FAST_TOAST_MS);
+
+          await refreshSaldo();
+          await refreshHistory().catch(() => {});
+
+          showToast("Transferencia enviada", 2200);
         } catch(e){
-          applyDelta(plan, +qty);
+          await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
       };
