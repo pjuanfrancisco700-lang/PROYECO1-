@@ -1007,9 +1007,20 @@
       }
     }
 
-    async function refreshSaldo() {
+    async function refreshSaldo(options = {}) {
       if (!state.ruta) return;
+
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
+
+      if (options.expectedPlan && typeof options.expectedAfter !== "undefined") {
+        const serverAfter = Number((data.saldo || {})[options.expectedPlan]);
+        const expectedAfter = Number(options.expectedAfter);
+
+        if (serverAfter !== expectedAfter) {
+          throw new Error("El servidor aún no refleja el uso. Intenta de nuevo.");
+        }
+      }
+
       state.peso = (data.peso ?? state.peso);
       state.saldo = (data.saldo || state.saldo);
       state.saldoEstado = (data.saldo_estado || {});
@@ -1089,29 +1100,22 @@
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
         closeModal();
-        applyDelta(plan, -qty);
-        showToast("Guardado (sincronizando…)", FAST_TOAST_MS);
+        showToast("Guardando…", FAST_TOAST_MS);
 
         try{
           const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
 
-          if (typeof res.after !== "undefined") {
-            const next = Number(res.after || 0);
-            state.saldo[plan] = next;
-            state.saldoEstado[plan] = {
-              valor: next,
-              negativo: !!res.negativo,
-              color: res.color || (next < 0 ? "red" : "normal")
-            };
-            state.lastUpdated = new Date();
-            renderHome();
-            saveCache();
-          }
+          await refreshSaldo({ expectedPlan: plan, expectedAfter: res.after });
+          await refreshHistory().catch(() => {});
 
-          syncInBackground();
-          showToast(res.negativo ? `Uso registrado. Sobregiro: ${res.sobregiro}` : "Uso registrado", 2200);
+          showToast(
+            res.negativo
+              ? `Uso registrado. Sobregiro: ${res.sobregiro}`
+              : "Uso registrado",
+            2200
+          );
         } catch(e){
-          applyDelta(plan, +qty);
+          await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
       };
