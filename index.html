@@ -518,6 +518,9 @@
 
     const $ = (id) => document.getElementById(id);
 
+    const PENDING_WRITE_HOLD_MS = 12000;
+    const WRITE_ACTIONS = new Set(["use", "transfer_create", "transfer_respond"]);
+
     const state = {
       ruta: null,
       peso: null,
@@ -525,6 +528,7 @@
       saldoEstado: {},
       pendientes: [],
       history: [],
+      pendingSaldoWrites: {},
       lastUpdated: null,
       pollTimer: null,
       demo: false,
@@ -625,6 +629,8 @@
       if (state.demo) return demoApi(params);
 
       const url = apiUrl(params);
+      const action = String(params?.action || "").trim();
+      const allowJsonpFallback = !WRITE_ACTIONS.has(action);
       let data = null;
       let lastErr = null;
 
@@ -634,7 +640,7 @@
         lastErr = e;
       }
 
-      if (!data) {
+      if (!data && allowJsonpFallback) {
         try {
           data = await jsonp(url);
         } catch (e) {
@@ -812,21 +818,64 @@
       state.saldoEstado = out;
     }
 
-    function applyDelta(plan, delta){
-      const cur = Number(state.saldo?.[plan] || 0);
-      const next = cur + Number(delta || 0);
-      state.saldo = { ...(state.saldo || {}), [plan]: next };
+    function prunePendingWrites() {
+      const now = Date.now();
+      Object.keys(state.pendingSaldoWrites || {}).forEach(plan => {
+        const item = state.pendingSaldoWrites[plan];
+        if (!item || (now - Number(item.ts || 0)) > PENDING_WRITE_HOLD_MS) {
+          delete state.pendingSaldoWrites[plan];
+        }
+      });
+    }
+
+    function setPlanBalance(plan, next, { markPending = false } = {}){
+      const value = Number(next || 0);
+      state.saldo = { ...(state.saldo || {}), [plan]: value };
       state.saldoEstado = {
         ...(state.saldoEstado || {}),
         [plan]: {
-          valor: next,
-          negativo: next < 0,
-          color: next < 0 ? "red" : "normal"
+          valor: value,
+          negativo: value < 0,
+          color: value < 0 ? "red" : "normal"
         }
       };
+
+      if (markPending) {
+        state.pendingSaldoWrites = {
+          ...(state.pendingSaldoWrites || {}),
+          [plan]: { value, ts: Date.now() }
+        };
+      }
+
       state.lastUpdated = new Date();
       renderHome();
       saveCache();
+    }
+
+    function applyDelta(plan, delta, opts={}){
+      const cur = Number(state.saldo?.[plan] || 0);
+      const next = cur + Number(delta || 0);
+      setPlanBalance(plan, next, opts);
+    }
+
+    function mergeServerSaldo(serverSaldo) {
+      const incoming = { ...(serverSaldo || {}) };
+      prunePendingWrites();
+
+      Object.entries(state.pendingSaldoWrites || {}).forEach(([plan, info]) => {
+        const pendingValue = Number(info?.value || 0);
+        const serverHasPlan = Object.prototype.hasOwnProperty.call(incoming, plan);
+        const serverValue = serverHasPlan ? Number(incoming[plan] || 0) : null;
+
+        if (serverHasPlan && serverValue === pendingValue) {
+          delete state.pendingSaldoWrites[plan];
+          return;
+        }
+
+        incoming[plan] = pendingValue;
+      });
+
+      state.saldo = incoming;
     }
 
     function syncInBackground(){
@@ -961,6 +1010,7 @@
         if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (cached.pendientes || []);
         state.history = (cached.history || []);
+        state.pendingSaldoWrites = {};
         state.lastUpdated = cached.lastUpdated ? new Date(cached.lastUpdated) : new Date();
         setScreen("home");
         renderHome();
@@ -972,6 +1022,7 @@
         state.saldoEstado = {};
         state.pendientes = [];
         state.history = [];
+        state.pendingSaldoWrites = {};
         state.lastUpdated = new Date();
         setScreen("home");
         renderHome();
@@ -988,6 +1039,7 @@
         if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
         state.pendientes = (data.pendientes || []);
         state.history = (data.history || []);
+        state.pendingSaldoWrites = {};
         state.lastUpdated = new Date();
 
         localStorage.setItem("ruta_id", state.ruta);
@@ -1013,7 +1065,7 @@
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
 
       state.peso = (data.peso ?? state.peso);
-      state.saldo = (data.saldo || state.saldo);
+      mergeServerSaldo(data.saldo || state.saldo || {});
       state.saldoEstado = (data.saldo_estado || {});
       if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
       state.pendientes = (data.pendientes || []);
@@ -1062,6 +1114,7 @@
       state.saldoEstado = {};
       state.pendientes = [];
       state.history = [];
+      state.pendingSaldoWrites = {};
       state.lastUpdated = null;
       localStorage.removeItem("ruta_id");
       localStorage.removeItem("demo_mode");
@@ -1098,17 +1151,12 @@
           const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
 
           if (typeof res.after !== "undefined") {
-            const delta = Number(res.after) - current;
-            applyDelta(plan, delta);
+            setPlanBalance(plan, Number(res.after), { markPending: true });
           } else {
-            applyDelta(plan, -qty);
+            setPlanBalance(plan, current - qty, { markPending: true });
           }
 
           await refreshHistory().catch(() => {});
-
-          setTimeout(() => {
-            refreshSaldo().catch(() => {});
-          }, 1500);
 
           showToast(
             res.negativo
@@ -1117,7 +1165,6 @@
             2200
           );
         } catch (e) {
-          await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
       };
@@ -1166,16 +1213,11 @@
         try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
 
-          applyDelta(plan, -qty);
+          setPlanBalance(plan, current - qty, { markPending: true });
           await refreshHistory().catch(() => {});
-
-          setTimeout(() => {
-            refreshSaldo().catch(() => {});
-          }, 1500);
 
           showToast("Transferencia enviada", 2200);
         } catch (e) {
-          await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
       };
