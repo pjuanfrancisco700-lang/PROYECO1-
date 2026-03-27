@@ -984,42 +984,49 @@ Elaborado por Sergio Pascual.
     }
 
     function openUseModal(plan) {
-      openModal("Agregar uso", `
-        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
-        <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
-        <button class="btn" id="useSend">Guardar uso</button>
-        <button class="btn secondary" id="useCancel">Cancelar</button>
-      `);
+  openModal("Agregar uso", `
+    <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
+    <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
+    <button class="btn" id="useSend">Guardar uso</button>
+    <button class="btn secondary" id="useCancel">Cancelar</button>
+  `);
 
-      $("useCancel").onclick = closeModal;
-      $("useSend").onclick = async () => {
-        const raw = String(($('useQty').value || "")).trim();
-        if (!/^\d+$/.test(raw)) return showToast("Cantidad inválida");
-        const qty = Number(raw);
-        if (!qty || qty <= 0) return showToast("Cantidad inválida");
+  $("useCancel").onclick = closeModal;
+  $("useSend").onclick = async () => {
+    const raw = String(($('useQty').value || "")).trim();
+    if (!/^\d+$/.test(raw)) return showToast("Cantidad inválida");
+    const qty = Number(raw);
+    if (!qty || qty <= 0) return showToast("Cantidad inválida");
 
-        closeModal();
-        showToast("Guardando…", FAST_TOAST_MS);
+    const current = Number(state.saldo?.[plan] || 0);
+    const optimistic = current - qty;
 
-        try {
-          const current = Number(state.saldo?.[plan] || 0);
-          const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
+    closeModal();
 
-          if (typeof res.after !== "undefined") {
-            setPlanBalance(plan, Number(res.after), { markPending: true });
-          } else {
-            setPlanBalance(plan, current - qty, { markPending: true });
-          }
+    // Actualiza visualmente al instante
+    setPlanBalance(plan, optimistic, { markPending: true });
+    showToast("Guardando…", FAST_TOAST_MS);
 
-          await refreshHistory().catch(() => {});
-          showToast("Uso registrado", 2200);
-        } catch (e) {
-          console.error("USE ERROR:", e);
-          showToast(e.message || "Error", 2600);
-        }
-      };
+    try {
+      const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
+
+      // Si el servidor devuelve saldo final, lo ajustamos
+      if (typeof res.after !== "undefined") {
+        setPlanBalance(plan, Number(res.after), { markPending: true });
+      }
+
+      await refreshHistory().catch(() => {});
+      showToast("Uso registrado", 2200);
+    } catch (e) {
+      console.error("USE ERROR:", e);
+
+      // Revertir si falla
+      setPlanBalance(plan, current, { markPending: false });
+
+      showToast(e.message || "Error al guardar", 2600);
     }
-
+  };
+}
     function openTransferModal(defaultPlan=null) {
       const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
         const bal = Number(state.saldo[p] ?? 0);
