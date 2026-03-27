@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#f6f7fb" />
   <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
-<link rel="apple-touch-icon" href="icon-192-v2.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
+  <link rel="apple-touch-icon" href="icon-192-v2.png">
   <title>Recursos por Ruta</title>
 
   <style>
@@ -377,16 +377,6 @@
     }
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
-    .footerBar{
-      position: sticky;
-      bottom: 0;
-      background: rgba(242,242,247,.78);
-      border-top: 1px solid var(--line);
-      backdrop-filter: blur(18px) saturate(140%);
-      -webkit-backdrop-filter: blur(18px) saturate(140%);
-    }
-    .footerBtns{ padding: 12px var(--pad); display:flex; gap:10px; }
-
     @media (prefers-reduced-motion: reduce) {
       *{ scroll-behavior:auto !important; }
     }
@@ -395,7 +385,6 @@
 
 <body class="safe-top safe-bottom">
   <div class="app">
-
     <header>
       <div class="bar">
         <div class="title">
@@ -443,8 +432,7 @@
           <div class="field">
             <input class="input" inputmode="numeric" pattern="[0-9]*" id="inpRuta" placeholder="Ej: 17029" />
             <button class="btn" id="btnEntrar">Entrar</button>
-            <button class="btn secondary" id="btnDemo" title="Solo para prueba visual (no escribe)" style="display:none;">Demo (sin guardar)</button>
-            <div class="help" style="display:none;">Tip: Si tu Apps Script responde lento la primera vez, vuelve a intentar. Queda en caché luego.</div>
+            <div class="help">Optimizado para reducir recargas al servidor y que la app responda más rápido.</div>
           </div>
         </div>
       </section>
@@ -477,14 +465,15 @@
 
           <div id="plansList" class="plans"></div>
         </div>
-      </section>
 
-<div class="microFooter">
-  Construido con Google Sheets, Apps Script, GitHub y flujo de trabajo asistido por IA.<br>
-  Elaborado por Sergio Pascual.
-</div>
+        <div class="microFooter">
+          Construido con Google Sheets, Apps Script, GitHub y flujo de trabajo asistido por IA.<br>
+          Elaborado por Sergio Pascual.
+        </div>
+      </section>
     </main>
-    
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <div class="modalBack" id="modalBack">
@@ -504,9 +493,17 @@
 
   <script>
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyzZvkWeCf91JX-VgUYmF9lOGfNpNCqkjcFPHtuCebOjnsTVG3BGU8TF5H7Rqo4Opg/exec";
-    const POLL_MS = 9000;
+
+    // Optimización principal:
+    // - polling más espaciado
+    // - historial solo cuando se necesita
+    // - cache guardado con debounce
+    const POLL_MS = 25000;
     const CACHE_TTL_MS = 5 * 60 * 1000;
     const FAST_TOAST_MS = 1400;
+    const SAVE_CACHE_DEBOUNCE_MS = 900;
+    const PENDING_WRITE_HOLD_MS = 12000;
+    const WRITE_ACTIONS = new Set(["use", "transfer_create", "transfer_respond"]);
 
     const inflight = new Map();
     function apiCallDedup(key, params){
@@ -518,9 +515,6 @@
 
     const $ = (id) => document.getElementById(id);
 
-    const PENDING_WRITE_HOLD_MS = 12000;
-    const WRITE_ACTIONS = new Set(["use", "transfer_create", "transfer_respond"]);
-
     const state = {
       ruta: null,
       peso: null,
@@ -531,7 +525,6 @@
       pendingSaldoWrites: {},
       lastUpdated: null,
       pollTimer: null,
-      demo: false,
     };
 
     const els = {
@@ -545,13 +538,11 @@
       screenHome: $("screenHome"),
       inpRuta: $("inpRuta"),
       btnEntrar: $("btnEntrar"),
-      btnDemo: $("btnDemo"),
       lblRuta: $("lblRuta"),
       lblPeso: $("lblPeso"),
       lblUpdated: $("lblUpdated"),
       plansList: $("plansList"),
       btnRefresh: $("btnRefresh"),
-
       toast: $("toast"),
       modalBack: $("modalBack"),
       modalTitle: $("modalTitle"),
@@ -610,10 +601,7 @@
         });
 
         const raw = await res.text();
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         try {
           return JSON.parse(raw);
@@ -626,8 +614,6 @@
     }
 
     async function apiCall(params) {
-      if (state.demo) return demoApi(params);
-
       const url = apiUrl(params);
       const action = String(params?.action || "").trim();
       const allowJsonpFallback = !WRITE_ACTIONS.has(action);
@@ -659,115 +645,6 @@
       return data;
     }
 
-    function demoApi(params) {
-      const now = new Date();
-
-      if (params.action === "login") {
-        return Promise.resolve({
-          ok: true,
-          ruta: params.ruta,
-          peso: 14.8,
-          saldo: { M2601310: 434, M2601312: -5, M2601377: 620, M2601378: 111, M2602303: 365 },
-          saldo_estado: {
-            M2601310: { valor: 434, negativo: false, color: "normal" },
-            M2601312: { valor: -5, negativo: true, color: "red" },
-            M2601377: { valor: 620, negativo: false, color: "normal" },
-            M2601378: { valor: 111, negativo: false, color: "normal" },
-            M2602303: { valor: 365, negativo: false, color: "normal" }
-          },
-          pendientes: [{ id: 12, fecha: now.toISOString(), de: "17030", para: params.ruta, plan:"M2601310", cantidad: 5, estado:"PENDIENTE" }],
-          history: [
-            { id: "1", fecha: now.toISOString(), tipo: "USE", de: params.ruta, para: "", plan: "M2601310", cantidad: 10 },
-            { id: "2", fecha: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_OUT", de: params.ruta, para: "17030", plan: "M2601377", cantidad: 8 },
-            { id: "3", fecha: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_IN", de: "17031", para: params.ruta, plan: "M2601378", cantidad: 5 },
-            { id: "4", fecha: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), tipo: "TRANSFER_REJECTED", de: params.ruta, para: "17033", plan: "M2602303", cantidad: 4 }
-          ]
-        });
-      }
-
-      if (params.action === "notifications") {
-        return Promise.resolve({ ok:true, ruta: params.ruta, pendientes: state.pendientes });
-      }
-
-      if (params.action === "history") {
-        return Promise.resolve({ ok:true, ruta: params.ruta, history: state.history || [] });
-      }
-
-      if (params.action === "use") {
-        const plan = params.plan;
-        const c = Number(params.cantidad);
-        const current = Number(state.saldo[plan] || 0);
-        const next = current - c;
-        state.saldo[plan] = next;
-        state.saldoEstado[plan] = {
-          valor: next,
-          negativo: next < 0,
-          color: next < 0 ? "red" : "normal"
-        };
-        state.history = [{
-          id: String(Date.now()),
-          fecha: new Date().toISOString(),
-          tipo: "USE",
-          de: state.ruta,
-          para: "",
-          plan,
-          cantidad: c
-        }, ...(state.history || [])].slice(0, 30);
-        return Promise.resolve({
-          ok:true,
-          before: current,
-          after: next,
-          negativo: next < 0,
-          sobregiro: next < 0 ? Math.abs(next) : 0,
-          color: next < 0 ? "red" : "normal"
-        });
-      }
-
-      if (params.action === "transfer_create") {
-        const plan = params.plan;
-        const qty = Number(params.cantidad || 0);
-        const current = Number(state.saldo[plan] || 0);
-        const next = current - qty;
-
-        if (next < 0) {
-          return Promise.reject(new Error(`Saldo insuficiente en origen. Actual=${current}, intento=${qty}`));
-        }
-
-        state.saldo[plan] = next;
-        state.saldoEstado[plan] = {
-          valor: next,
-          negativo: next < 0,
-          color: next < 0 ? "red" : "normal"
-        };
-        state.history = [{
-          id: String(Date.now()),
-          fecha: new Date().toISOString(),
-          tipo: "TRANSFER_OUT",
-          de: state.ruta,
-          para: String(params.para || ""),
-          plan,
-          cantidad: qty
-        }, ...(state.history || [])].slice(0, 30);
-
-        return Promise.resolve({ ok:true, id: Math.floor(Math.random()*9000)+1000 });
-      }
-
-      if (params.action === "transfer_respond") {
-        state.history = [{
-          id: String(Date.now()),
-          fecha: new Date().toISOString(),
-          tipo: params.decision === "APROBAR" ? "TRANSFER_APPROVED" : "TRANSFER_REJECTED",
-          de: "17030",
-          para: state.ruta,
-          plan: "M2601310",
-          cantidad: 5
-        }, ...(state.history || [])].slice(0, 30);
-        return Promise.resolve({ ok:true });
-      }
-
-      return Promise.resolve({ ok:true });
-    }
-
     function showToast(msg, ms = 2600) {
       els.toast.textContent = msg;
       els.toast.style.display = "block";
@@ -777,7 +654,7 @@
 
     function cacheKey(ruta){ return `cache_${ruta}`; }
 
-    function saveCache(){
+    function saveCacheNow(){
       if (!state.ruta) return;
       try {
         const payload = {
@@ -792,6 +669,11 @@
         };
         localStorage.setItem(cacheKey(state.ruta), JSON.stringify(payload));
       } catch(e) {}
+    }
+
+    function saveCache(){
+      clearTimeout(saveCache._t);
+      saveCache._t = setTimeout(saveCacheNow, SAVE_CACHE_DEBOUNCE_MS);
     }
 
     function loadCache(ruta){
@@ -828,6 +710,36 @@
       });
     }
 
+    function updatePlanCard(plan) {
+      const card = els.plansList.querySelector(`[data-plan-card="${CSS.escape(plan)}"]`);
+      if (!card) return renderHome();
+
+      const bal = Number(state.saldo[plan] || 0);
+      const balInfo = state.saldoEstado?.[plan] || {
+        valor: bal,
+        negativo: bal < 0,
+        color: bal < 0 ? "red" : "normal"
+      };
+
+      const balEl = card.querySelector(".planBal");
+      balEl.className = `planBal ${balInfo.negativo ? "negative" : ""}`;
+      balEl.innerHTML = `${bal}<small>u</small>`;
+
+      let negEl = card.querySelector(".negInfo");
+      if (balInfo.negativo) {
+        if (!negEl) {
+          negEl = document.createElement("div");
+          negEl.className = "negInfo";
+          card.querySelector(".planTop > div").appendChild(negEl);
+        }
+        negEl.textContent = `Sobregiro: ${Math.abs(bal)} u`;
+      } else if (negEl) {
+        negEl.remove();
+      }
+
+      els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
+    }
+
     function setPlanBalance(plan, next, { markPending = false } = {}){
       const value = Number(next || 0);
       state.saldo = { ...(state.saldo || {}), [plan]: value };
@@ -848,14 +760,8 @@
       }
 
       state.lastUpdated = new Date();
-      renderHome();
+      updatePlanCard(plan);
       saveCache();
-    }
-
-    function applyDelta(plan, delta, opts={}){
-      const cur = Number(state.saldo?.[plan] || 0);
-      const next = cur + Number(delta || 0);
-      setPlanBalance(plan, next, opts);
     }
 
     function mergeServerSaldo(serverSaldo) {
@@ -871,16 +777,10 @@
           delete state.pendingSaldoWrites[plan];
           return;
         }
-
         incoming[plan] = pendingValue;
       });
 
       state.saldo = incoming;
-    }
-
-    function syncInBackground(){
-      refreshSaldo().catch(() => {});
-      refreshHistory().catch(() => {});
     }
 
     function setScreen(name) {
@@ -953,7 +853,7 @@
       els.btnHistory.style.display = "inline-flex";
       els.btnBell.style.display = "inline-flex";
       els.btnLogout.style.display = "inline-flex";
-     
+
       const plans = Object.keys(state.saldo || {}).sort();
       els.plansList.innerHTML = "";
 
@@ -976,6 +876,7 @@
 
         const div = document.createElement("div");
         div.className = "plan";
+        div.setAttribute("data-plan-card", plan);
         div.innerHTML = `
           <div class="planTop">
             <div>
@@ -996,8 +897,7 @@
       setBadge((state.pendientes || []).length);
     }
 
-    async function login(ruta, demo=false) {
-      state.demo = demo;
+    async function login(ruta) {
       const r = String(ruta || "").trim();
       if (!r) return showToast("Escribe la ruta");
 
@@ -1043,9 +943,7 @@
         state.lastUpdated = new Date();
 
         localStorage.setItem("ruta_id", state.ruta);
-        localStorage.setItem("demo_mode", state.demo ? "1" : "0");
-        saveCache();
-
+        saveCacheNow();
         setScreen("home");
         renderHome();
         startPolling();
@@ -1059,11 +957,11 @@
       }
     }
 
-    async function refreshSaldo() {
+    // Refresh manual: sí trae todo, pero solo cuando el usuario lo pide.
+    async function refreshSaldoFull() {
       if (!state.ruta) return;
 
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
-
       state.peso = (data.peso ?? state.peso);
       mergeServerSaldo(data.saldo || state.saldo || {});
       state.saldoEstado = (data.saldo_estado || {});
@@ -1072,6 +970,14 @@
       state.history = (data.history || state.history || []);
       state.lastUpdated = new Date();
       renderHome();
+      saveCache();
+    }
+
+    async function refreshNotificationsOnly() {
+      if (!state.ruta) return;
+      const data = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
+      state.pendientes = data.pendientes || [];
+      setBadge(state.pendientes.length);
       saveCache();
     }
 
@@ -1087,11 +993,7 @@
       state.pollTimer = setInterval(async () => {
         try {
           if (!state.ruta) return;
-          const d = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
-          state.pendientes = d.pendientes || [];
-          setBadge(state.pendientes.length);
-          refreshHistory().catch(() => {});
-          saveCache();
+          await refreshNotificationsOnly();
         } catch (e) {}
       }, POLL_MS);
     }
@@ -1117,8 +1019,6 @@
       state.pendingSaldoWrites = {};
       state.lastUpdated = null;
       localStorage.removeItem("ruta_id");
-      localStorage.removeItem("demo_mode");
-      state.demo = false;
 
       els.btnHistory.style.display = "none";
       els.btnBell.style.display = "none";
@@ -1130,7 +1030,7 @@
 
     function openUseModal(plan) {
       openModal("Agregar uso", `
-        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>. Si te pasas del disponible, el saldo quedará en rojo y negativo.</div>
+        <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
         <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
         <button class="btn" id="useSend">Guardar uso</button>
         <button class="btn secondary" id="useCancel">Cancelar</button>
@@ -1156,14 +1056,9 @@
             setPlanBalance(plan, current - qty, { markPending: true });
           }
 
+          // Aquí sí se consulta historial porque acaba de haber una operación real.
           await refreshHistory().catch(() => {});
-
-          showToast(
-            res.negativo
-              ? `Uso registrado. Sobregiro: ${res.sobregiro}`
-              : "Uso registrado",
-            2200
-          );
+          showToast("Uso registrado", 2200);
         } catch (e) {
           showToast(e.message || "Error", 2600);
         }
@@ -1179,7 +1074,7 @@
       }).join("");
 
       openModal("Transferir", `
-        <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta. Se descuenta al enviar y queda pendiente para aceptar.</div>
+        <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta.</div>
         <div class="grid2">
           <input class="input" id="trPara" inputmode="numeric" pattern="[0-9]*" placeholder="Ruta destino (ej: 17030)" />
           <input class="input" id="trQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad" />
@@ -1203,19 +1098,16 @@
         const current = Number(state.saldo?.[plan] || 0);
 
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
-        if (qty > current) {
-          return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
-        }
+        if (qty > current) return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
 
         closeModal();
         showToast("Enviando…", FAST_TOAST_MS);
 
         try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-
           setPlanBalance(plan, current - qty, { markPending: true });
           await refreshHistory().catch(() => {});
-
+          await refreshNotificationsOnly().catch(() => {});
           showToast("Transferencia enviada", 2200);
         } catch (e) {
           showToast(e.message || "Error", 2600);
@@ -1237,13 +1129,13 @@
             <div>
               <div class="itemMeta">ID ${escapeHtml(t.id)} • ${escapeHtml(fmtTime(t.fecha))}</div>
               <div class="muted" style="font-size:12px; margin-top:4px;">
-                De <span class="pill">${escapeHtml(t.de)}</span> → Para <span class="pill">${escapeHtml(t.para)}</span>
+                De <span class="pill">${escapeHtml(t.de || t.from || "—")}</span> → Para <span class="pill">${escapeHtml(t.para || t.to || state.ruta)}</span>
               </div>
               <div class="muted" style="font-size:12px; margin-top:6px;">
                 Plan <span class="pill">${escapeHtml(t.plan)}</span>
               </div>
             </div>
-            <div class="itemAmt">${Number(t.cantidad || 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
+            <div class="itemAmt">${Number(t.cantidad ?? t.monto ?? 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
           </div>
 
           <div class="itemBtns">
@@ -1268,8 +1160,7 @@
           try{
             showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
             await apiCall({ action:"transfer_respond", id, decision: dec });
-            await refreshSaldo();
-            await refreshHistory().catch(() => {});
+            await refreshSaldoFull();
             closeModal();
             openNotificationsModal();
             showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
@@ -1280,7 +1171,10 @@
       });
     }
 
-    function openHistoryModal() {
+    async function openHistoryModal() {
+      showToast("Cargando historial…", FAST_TOAST_MS);
+      await refreshHistory().catch(() => {});
+
       const items = (state.history || []).slice().sort((a,b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
 
       if (!items.length) {
@@ -1311,7 +1205,7 @@
                 ${metaDe}
                 ${metaPara}
               </div>
-              <div class="itemAmt">${Number(m.cantidad || 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
+              <div class="itemAmt">${Number(m.cantidad ?? m.monto ?? 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
             </div>
           </div>
         `;
@@ -1327,22 +1221,22 @@
     }
 
     els.btnEntrar.addEventListener("click", async () => {
-      try{ await login(els.inpRuta.value, false); }
-      catch(e){ showToast(e.message || "Error"); }
-    });
-
-    els.btnDemo.addEventListener("click", async () => {
-      try{ await login(els.inpRuta.value || "17029", true); }
+      try{ await login(els.inpRuta.value); }
       catch(e){ showToast(e.message || "Error"); }
     });
 
     els.btnRefresh.addEventListener("click", async () => {
-      try{ showToast("Actualizando..."); await refreshSaldo(); await refreshHistory().catch(() => {}); showToast("Actualizado"); }
-      catch(e){ showToast(e.message || "Error"); }
+      try{
+        showToast("Actualizando...");
+        await refreshSaldoFull();
+        showToast("Actualizado");
+      } catch(e){
+        showToast(e.message || "Error");
+      }
     });
 
     els.btnLogout.addEventListener("click", logout);
-    els.btnHistory.addEventListener("click", openHistoryModal);
+    els.btnHistory.addEventListener("click", () => openHistoryModal());
     els.btnBell.addEventListener("click", openNotificationsModal);
 
     els.plansList.addEventListener("click", (e) => {
@@ -1357,15 +1251,13 @@
 
     els.modalClose.addEventListener("click", closeModal);
     els.modalBack.addEventListener("click", (e) => { if (e.target === els.modalBack) closeModal(); });
-
     els.inpRuta.addEventListener("keydown", (e) => { if (e.key === "Enter") els.btnEntrar.click(); });
 
     (function boot(){
       const savedRuta = localStorage.getItem("ruta_id");
-      const demoMode = localStorage.getItem("demo_mode") === "1";
       if (savedRuta) {
         els.inpRuta.value = savedRuta;
-        login(savedRuta, demoMode).catch(() => logout());
+        login(savedRuta).catch(() => logout());
       } else {
         els.btnHistory.style.display = "none";
         els.btnBell.style.display = "none";
