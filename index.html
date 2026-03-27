@@ -1007,19 +1007,10 @@
       }
     }
 
-    async function refreshSaldo(options = {}) {
+    async function refreshSaldo() {
       if (!state.ruta) return;
 
       const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
-
-      if (options.expectedPlan && typeof options.expectedAfter !== "undefined") {
-        const serverAfter = Number((data.saldo || {})[options.expectedPlan]);
-        const expectedAfter = Number(options.expectedAfter);
-
-        if (serverAfter !== expectedAfter) {
-          throw new Error("El servidor aún no refleja el uso. Intenta de nuevo.");
-        }
-      }
 
       state.peso = (data.peso ?? state.peso);
       state.saldo = (data.saldo || state.saldo);
@@ -1102,11 +1093,22 @@
         closeModal();
         showToast("Guardando…", FAST_TOAST_MS);
 
-        try{
+        try {
+          const current = Number(state.saldo?.[plan] || 0);
           const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
 
-          await refreshSaldo({ expectedPlan: plan, expectedAfter: res.after });
+          if (typeof res.after !== "undefined") {
+            const delta = Number(res.after) - current;
+            applyDelta(plan, delta);
+          } else {
+            applyDelta(plan, -qty);
+          }
+
           await refreshHistory().catch(() => {});
+
+          setTimeout(() => {
+            refreshSaldo().catch(() => {});
+          }, 1500);
 
           showToast(
             res.negativo
@@ -1114,7 +1116,7 @@
               : "Uso registrado",
             2200
           );
-        } catch(e){
+        } catch (e) {
           await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
@@ -1161,14 +1163,18 @@
         closeModal();
         showToast("Enviando…", FAST_TOAST_MS);
 
-        try{
+        try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
 
-          await refreshSaldo();
+          applyDelta(plan, -qty);
           await refreshHistory().catch(() => {});
 
+          setTimeout(() => {
+            refreshSaldo().catch(() => {});
+          }, 1500);
+
           showToast("Transferencia enviada", 2200);
-        } catch(e){
+        } catch (e) {
           await refreshSaldo().catch(() => {});
           showToast(e.message || "Error", 2600);
         }
