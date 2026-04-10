@@ -1,20 +1,1282 @@
-{
-  "name": "Recursos por Ruta",
-  "short_name": "Recursos",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#f2f2f7",
-  "theme_color": "#4A90E2",
-  "icons": [
-    {
-      "src": "icon-192-v2.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512-v2.png",
-      "sizes": "512x512",
-      "type": "image/png"
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#f6f7fb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
+  <link rel="apple-touch-icon" href="icon-192-v2.png">
+  <title>Recursos por Ruta</title>
+
+  <style>
+    :root{
+      --bg: #f2f2f7;
+      --bg2:#ffffff;
+      --surface: rgba(255,255,255,.88);
+      --surface2:#ffffff;
+      --text:#0b1220;
+      --muted: rgba(11,18,32,.58);
+      --line: rgba(11,18,32,.10);
+
+      --shadow: 0 16px 34px rgba(0, 0, 0, .08);
+      --shadow2: 0 8px 18px rgba(0, 0, 0, .06);
+
+      --radius: 20px;
+      --radius2: 16px;
+      --pad: 16px;
+      --tap: 52px;
+
+      --ok:#19b26b;
+      --warn:#f4b400;
+      --bad:#ff3b30;
+
+      --accent:#0a84ff;
+      --accent2:#2b88d8;
+      --accentSoft: rgba(10,132,255,.12);
+
+      --sys:"Segoe UI Variable","Segoe UI",Inter,system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
     }
-  ]
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sys);
+      color:var(--text);
+      background:
+        radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
+        radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
+        linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6);
+      overflow-x:hidden;
+    }
+
+    .safe-top{ padding-top: env(safe-area-inset-top); }
+    .safe-bottom{ padding-bottom: env(safe-area-inset-bottom); }
+
+    .app{
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      background: rgba(242,242,247,.78);
+      border-bottom: 1px solid var(--line);
+    }
+    .bar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 12px var(--pad);
+    }
+    .title{ display:flex; flex-direction:column; gap:2px; }
+    .title h1{ margin:0; font-size:17px; font-weight:900; letter-spacing:.1px; }
+    .title .sub{ font-size:12px; color:var(--muted); }
+
+    .iconbtn{
+      height:40px;
+      min-width:40px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid rgba(11,18,32,.10);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--text);
+      box-shadow: var(--shadow2);
+      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+    }
+    .iconbtn:active{ transform: translateY(1px) scale(.98); filter: brightness(.98); }
+
+    .bell{ position:relative; }
+    .badge{
+      position:absolute;
+      top:-6px;
+      right:-6px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background: var(--bad);
+      color:white;
+      font-size:11px;
+      line-height:18px;
+      text-align:center;
+      border: 2px solid rgba(242,242,247,.95);
+      display:none;
+    }
+
+    main{ padding: 16px var(--pad) 24px; flex:1; }
+
+    .card{
+      background: rgba(255,255,255,.93);
+      border: 1px solid rgba(11,18,32,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .screen{ display:none; }
+    .screen.active{ display:block; }
+
+    .loginWrap{ margin-top: 14vh; padding: 18px; }
+    .hero{ padding: 16px 16px 6px; display:flex; flex-direction:column; gap:10px; }
+    .hero .logo{
+      width:52px; height:52px;
+      border-radius: 16px;
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.85), transparent 62%),
+        linear-gradient(135deg, rgba(58,160,255,1), rgba(123,199,255,1));
+      box-shadow: 0 18px 32px rgba(0,0,0,.12);
+      border: 1px solid rgba(255,255,255,.65);
+    }
+    .hero h2{ margin:0; font-size:22px; font-weight:900; letter-spacing:.1px; }
+    .hero p{ margin:0; color:var(--muted); font-size:12px; line-height:1.4; max-width: 360px; }
+
+    .field{ padding: 14px 16px 16px; display:flex; flex-direction:column; gap:10px; }
+
+    .input{
+      height: var(--tap);
+      border-radius: 16px;
+      border: 1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.94);
+      color: var(--text);
+      font-size:16px;
+      padding: 0 14px;
+      outline:none;
+      box-shadow: 0 10px 18px rgba(0,0,0,.05);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .input::placeholder{ color: rgba(11,18,32,.32); }
+    .input:focus{
+      border-color: rgba(58,160,255,.45);
+      box-shadow: 0 14px 22px rgba(58,160,255,.12);
+    }
+
+    .btn{
+      height: var(--tap);
+      border-radius: 16px;
+      border: 1px solid rgba(58,160,255,.20);
+      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94));
+      color: white;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing:.2px;
+      box-shadow: 0 16px 26px rgba(58,160,255,.18);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .btn:active{ transform: translateY(1px) scale(.99); filter: brightness(.98); }
+
+    .btn.secondary{
+      background: rgba(255,255,255,.90);
+      border: 1px solid rgba(11,18,32,.12);
+      box-shadow: 0 10px 18px rgba(0,0,0,.05);
+      font-weight: 800;
+      color: rgba(11,18,32,.88);
+    }
+
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .pill{
+      font-family: var(--mono);
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.88);
+      color: rgba(11,18,32,.78);
+      white-space:nowrap;
+      box-shadow: 0 10px 18px rgba(0,0,0,.04);
+    }
+    .muted{ color: var(--muted); }
+
+    .panel{
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(11,18,32,.08);
+      background: rgba(255,255,255,.88);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow2);
+    }
+
+
+    .panel-header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .panel-logo{
+      width:48px;
+      height:48px;
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+
+    .panel-logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+
+    .panel-info{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-width:0;
+    }
+
+    .panel-info .row{
+      align-items:center;
+    }
+
+    .plans{ display:flex; flex-direction:column; gap:8px; }
+    .plan{
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(11,18,32,.08);
+      background: rgba(255,255,255,.94);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      box-shadow: 0 12px 22px rgba(0,0,0,.05);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .plan:active{
+      transform: scale(.995);
+      box-shadow: 0 10px 18px rgba(0,0,0,.05);
+    }
+    .planTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:2px; }
+    .planName{ font-family: var(--mono); font-size:12px; color: rgba(11,18,32,.78); letter-spacing:.2px; }
+    .planBal{
+      font-size: 27px;
+      font-weight: 900;
+      letter-spacing: 0;
+      color: var(--text);
+    }
+    .planBal small{ font-size: 12px; color: var(--muted); font-weight: 800; margin-left: 6px; }
+    .planBal.negative{ color: var(--bad); }
+
+    .negInfo{
+      margin-top:4px;
+      font-size:12px;
+      font-weight:800;
+      color: var(--bad);
+    }
+
+    .planActions{ display:flex; gap:8px; }
+
+    .mini{
+      flex:1;
+      height:44px;
+      border-radius: 14px;
+      border: 1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.90);
+      color: rgba(11,18,32,.88);
+      font-weight: 900;
+      font-size: 13px;
+      box-shadow: 0 10px 18px rgba(0,0,0,.04);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .mini:active{ transform: translateY(1px) scale(.99); filter: brightness(.985); }
+
+    .mini.primary{
+      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94));
+      border: 1px solid rgba(58,160,255,.20);
+      color:#fff;
+      box-shadow: 0 16px 26px rgba(58,160,255,.16);
+    }
+
+    .microFooter{
+      margin-top: 18px;
+      padding: 4px 10px 0;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.45;
+      letter-spacing: .2px;
+      color: rgba(11,18,32,.38);
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      transform: translateX(-50%);
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      width: min(520px, calc(100% - 28px));
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.86);
+      border: 1px solid rgba(11,18,32,.10);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      box-shadow: 0 18px 40px rgba(0,0,0,.10);
+      display:none;
+      z-index: 99;
+      font-size: 13px;
+      color: rgba(11,18,32,.86);
+    }
+
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(11,18,32,.36);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 12px;
+      z-index: 50;
+    }
+    .modal{
+      width: min(520px, 100%);
+      border-radius: 26px;
+      border: 1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(18px) saturate(150%);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      box-shadow: 0 30px 80px rgba(0,0,0,.16);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding: 14px 16px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(11,18,32,.08);
+    }
+    .modalHead strong{ font-size:14px; }
+    .modalBody{
+      padding: 12px 16px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height: min(78vh, 760px);
+      overflow:auto;
+    }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .help{ font-size:12px; color:var(--muted); line-height:1.35; }
+
+    .list{ display:flex; flex-direction:column; gap:8px; }
+    .item{
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.93);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      box-shadow: 0 12px 22px rgba(0,0,0,.05);
+    }
+    .itemTop{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .itemMeta{ font-family: var(--mono); font-size:12px; color: rgba(11,18,32,.72); }
+    .itemAmt{ font-size: 18px; font-weight: 900; }
+
+    .itemBtns{ display:flex; gap:10px; }
+    .ghost{
+      height:44px; border-radius: 14px;
+      border: 1px solid rgba(11,18,32,.10);
+      background: rgba(255,255,255,.88);
+      color: rgba(11,18,32,.90);
+      font-weight: 900;
+      flex:1;
+      box-shadow: 0 10px 18px rgba(0,0,0,.04);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .ghost:active{ transform: translateY(1px) scale(.99); filter: brightness(.985); }
+
+    .ok{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
+    .danger{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
+    .histUse{ border-color: rgba(0,120,212,.18); background: rgba(0,120,212,.05); }
+    .histOut{ border-color: rgba(244,180,0,.22); background: rgba(244,180,0,.08); }
+    .histIn{ border-color: rgba(25,178,107,.22); background: rgba(25,178,107,.08); }
+    .histApproved{
+      border-color: rgba(0,120,212,.22);
+      background: rgba(0,120,212,.08);
+    }
+    .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *{ scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+
+<body class="safe-top safe-bottom">
+  <div class="app">
+    <header>
+      <div class="bar">
+        <div class="title">
+          <h1 id="hdrTitle">Recursos</h1>
+          <div class="sub" id="hdrSub">Conectado a Google Sheets</div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="iconbtn" id="btnHistory" aria-label="Historial" title="Historial" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12a9 9 0 1 0 3-6.708" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M3 4v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button class="iconbtn bell" id="btnBell" aria-label="Notificaciones" title="Notificaciones" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="badge" id="bellBadge">0</span>
+          </button>
+
+          <button class="iconbtn" id="btnLogout" aria-label="Salir" title="Salir" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M10 17l1 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 7h5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 12H4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M6 10l-2 2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen active" id="screenLogin">
+        <div class="card loginWrap">
+          <div class="hero">
+            <div class="logo"></div>
+            <h2>Ingresar ruta</h2>
+            <p>Consulta disponibilidad, registra uso, transfiere recursos y revisa el historial reciente.</p>
+          </div>
+          <div class="field">
+            <input class="input" inputmode="numeric" pattern="[0-9]*" id="inpRuta" placeholder="Ej: 17029" />
+            <button class="btn" id="btnEntrar">Entrar</button>
+            <div class="help">Optimizado para reducir recargas al servidor y que la app responda más rápido.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screenHome">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-logo">
+              <img src="logo.png" alt="Logo">
+            </div>
+            <div class="panel-info">
+              <div class="row">
+                <div>
+                  <div class="muted" style="font-size:12px;">Ruta</div>
+                  <div style="font-size:18px; font-weight:900; letter-spacing:.2px;" id="lblRuta">—</div>
+                </div>
+                <div class="pill" id="lblPeso">PESO —%</div>
+              </div>
+              <div class="row" style="margin-top:6px;">
+                <div class="muted" style="font-size:12px;">Última actualización</div>
+                <div class="pill" id="lblUpdated">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 14px;">
+          <div class="row" style="padding: 2px 2px 10px;">
+            <strong style="font-size:14px;">Planes</strong>
+            <button class="iconbtn" id="btnRefresh" aria-label="Actualizar" title="Actualizar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <div id="plansList" class="plans"></div>
+        </div>
+
+        <div class="microFooter">
+          Construido con Google Sheets, Apps Script, GitHub y flujo de trabajo asistido por IA.<br>
+          Elaborado por Sergio Pascual.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modalBack" id="modalBack">
+    <div class="modal" id="modal">
+      <div class="modalHead">
+        <strong id="modalTitle">—</strong>
+        <button class="iconbtn" id="modalClose" aria-label="Cerrar" title="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modalBody" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyzZvkWeCf91JX-VgUYmF9lOGfNpNCqkjcFPHtuCebOjnsTVG3BGU8TF5H7Rqo4Opg/exec";
+
+    const POLL_MS = 25000;
+    const CACHE_TTL_MS = 5 * 60 * 1000;
+    const FAST_TOAST_MS = 1400;
+    const SAVE_CACHE_DEBOUNCE_MS = 900;
+    const PENDING_WRITE_HOLD_MS = 12000;
+
+    const inflight = new Map();
+    function apiCallDedup(key, params){
+      if (inflight.has(key)) return inflight.get(key);
+      const p = apiCall(params).finally(() => inflight.delete(key));
+      inflight.set(key, p);
+      return p;
+    }
+
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      ruta: null,
+      peso: null,
+      saldo: {},
+      saldoEstado: {},
+      pendientes: [],
+      history: [],
+      pendingSaldoWrites: {},
+      lastUpdated: null,
+      pollTimer: null,
+    };
+
+    const els = {
+      hdrTitle: $("hdrTitle"),
+      hdrSub: $("hdrSub"),
+      btnHistory: $("btnHistory"),
+      btnBell: $("btnBell"),
+      bellBadge: $("bellBadge"),
+      btnLogout: $("btnLogout"),
+      screenLogin: $("screenLogin"),
+      screenHome: $("screenHome"),
+      inpRuta: $("inpRuta"),
+      btnEntrar: $("btnEntrar"),
+      lblRuta: $("lblRuta"),
+      lblPeso: $("lblPeso"),
+      lblUpdated: $("lblUpdated"),
+      plansList: $("plansList"),
+      btnRefresh: $("btnRefresh"),
+      toast: $("toast"),
+      modalBack: $("modalBack"),
+      modalTitle: $("modalTitle"),
+      modalBody: $("modalBody"),
+      modalClose: $("modalClose"),
+    };
+
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('gesturechange', (e) => e.preventDefault());
+    document.addEventListener('gestureend', (e) => e.preventDefault());
+
+    function apiUrl(params) {
+      const u = new URL(WEBAPP_URL);
+      Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, String(v)));
+      return u.toString();
+    }
+
+    async function fetchJson(url, timeoutMs = 20000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      try {
+        const res = await fetch(url, {
+          method: "GET",
+          redirect: "follow",
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+
+        const raw = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        try {
+          return JSON.parse(raw);
+        } catch {
+          throw new Error("La respuesta no vino en JSON válido");
+        }
+      } catch (e) {
+        if (e.name === "AbortError") {
+          throw new Error("Tiempo de espera agotado al conectar con el servidor");
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function apiCall(params) {
+      const url = apiUrl(params);
+      const data = await fetchJson(url);
+
+      if (!data || data.ok !== true) {
+        const msg = (data && data.error) ? data.error : "Error del servidor";
+        throw new Error(msg);
+      }
+
+      return data;
+    }
+
+    function showToast(msg, ms = 2600) {
+      els.toast.textContent = msg;
+      els.toast.style.display = "block";
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => els.toast.style.display = "none", ms);
+    }
+
+    function cacheKey(ruta){ return `cache_${ruta}`; }
+
+    function saveCacheNow(){
+      if (!state.ruta) return;
+      try {
+        const payload = {
+          ts: Date.now(),
+          ruta: state.ruta,
+          peso: state.peso,
+          saldo: state.saldo,
+          saldoEstado: state.saldoEstado,
+          pendientes: state.pendientes,
+          history: state.history,
+          lastUpdated: state.lastUpdated ? state.lastUpdated.toISOString() : null,
+        };
+        localStorage.setItem(cacheKey(state.ruta), JSON.stringify(payload));
+      } catch(e) {}
+    }
+
+    function saveCache(){
+      clearTimeout(saveCache._t);
+      saveCache._t = setTimeout(saveCacheNow, SAVE_CACHE_DEBOUNCE_MS);
+    }
+
+    function loadCache(ruta){
+      try {
+        const raw = localStorage.getItem(cacheKey(ruta));
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (!c || !c.ts) return null;
+        if (Date.now() - c.ts > CACHE_TTL_MS) return null;
+        return c;
+      } catch(e){ return null; }
+    }
+
+    function rebuildSaldoEstadoFromSaldo() {
+      const out = {};
+      Object.keys(state.saldo || {}).forEach(plan => {
+        const val = Number(state.saldo[plan] || 0);
+        out[plan] = {
+          valor: val,
+          negativo: val < 0,
+          color: val < 0 ? "red" : "normal"
+        };
+      });
+      state.saldoEstado = out;
+    }
+
+    function prunePendingWrites() {
+      const now = Date.now();
+      Object.keys(state.pendingSaldoWrites || {}).forEach(plan => {
+        const item = state.pendingSaldoWrites[plan];
+        if (!item || (now - Number(item.ts || 0)) > PENDING_WRITE_HOLD_MS) {
+          delete state.pendingSaldoWrites[plan];
+        }
+      });
+    }
+
+    function updatePlanCard(plan) {
+      const card = els.plansList.querySelector(`[data-plan-card="${CSS.escape(plan)}"]`);
+      if (!card) return renderHome();
+
+      const bal = Number(state.saldo[plan] || 0);
+      const balInfo = state.saldoEstado?.[plan] || {
+        valor: bal,
+        negativo: bal < 0,
+        color: bal < 0 ? "red" : "normal"
+      };
+
+      const balEl = card.querySelector(".planBal");
+      balEl.className = `planBal ${balInfo.negativo ? "negative" : ""}`;
+      balEl.innerHTML = `${bal}<small>u</small>`;
+
+      let negEl = card.querySelector(".negInfo");
+      if (balInfo.negativo) {
+        if (!negEl) {
+          negEl = document.createElement("div");
+          negEl.className = "negInfo";
+          card.querySelector(".planTop > div").appendChild(negEl);
+        }
+        negEl.textContent = `Sobregiro: ${Math.abs(bal)} u`;
+      } else if (negEl) {
+        negEl.remove();
+      }
+
+      els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
+    }
+
+    function setPlanBalance(plan, next, { markPending = false } = {}){
+      const value = Number(next || 0);
+      state.saldo = { ...(state.saldo || {}), [plan]: value };
+      state.saldoEstado = {
+        ...(state.saldoEstado || {}),
+        [plan]: {
+          valor: value,
+          negativo: value < 0,
+          color: value < 0 ? "red" : "normal"
+        }
+      };
+
+      if (markPending) {
+        state.pendingSaldoWrites = {
+          ...(state.pendingSaldoWrites || {}),
+          [plan]: { value, ts: Date.now() }
+        };
+      }
+
+      state.lastUpdated = new Date();
+      updatePlanCard(plan);
+      saveCache();
+    }
+
+    function mergeServerSaldo(serverSaldo) {
+      const incoming = { ...(serverSaldo || {}) };
+      prunePendingWrites();
+
+      Object.entries(state.pendingSaldoWrites || {}).forEach(([plan, info]) => {
+        const pendingValue = Number(info?.value || 0);
+        const serverHasPlan = Object.prototype.hasOwnProperty.call(incoming, plan);
+        const serverValue = serverHasPlan ? Number(incoming[plan] || 0) : null;
+
+        if (serverHasPlan && serverValue === pendingValue) {
+          delete state.pendingSaldoWrites[plan];
+          return;
+        }
+        incoming[plan] = pendingValue;
+      });
+
+      state.saldo = incoming;
+    }
+
+    function setScreen(name) {
+      els.screenLogin.classList.remove("active");
+      els.screenHome.classList.remove("active");
+      if (name === "login") els.screenLogin.classList.add("active");
+      if (name === "home") els.screenHome.classList.add("active");
+    }
+
+    function fmtTime(d) {
+      const dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt)) return "—";
+      const hh = String(dt.getHours()).padStart(2,"0");
+      const mm = String(dt.getMinutes()).padStart(2,"0");
+      const dd = String(dt.getDate()).padStart(2,"0");
+      const mo = String(dt.getMonth()+1).padStart(2,"0");
+      return `${dd}/${mo} ${hh}:${mm}`;
+    }
+
+    function setBadge(n) {
+      const count = Number(n || 0);
+      if (count > 0) {
+        els.bellBadge.style.display = "inline-block";
+        els.bellBadge.textContent = count > 99 ? "99+" : String(count);
+      } else {
+        els.bellBadge.style.display = "none";
+      }
+    }
+
+    function openModal(title, bodyHtml) {
+      els.modalTitle.textContent = title;
+      els.modalBody.innerHTML = bodyHtml;
+      els.modalBack.style.display = "flex";
+    }
+    function closeModal() {
+      els.modalBack.style.display = "none";
+      els.modalTitle.textContent = "—";
+      els.modalBody.innerHTML = "";
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+    function historyTypeLabel(type){
+      return {
+        USE: "Uso registrado",
+        TRANSFER_OUT: "Transferencia enviada",
+        TRANSFER_IN: "Transferencia recibida",
+        TRANSFER_APPROVED: "Transferencia aceptada",
+        TRANSFER_REJECTED: "Transferencia rechazada"
+      }[type] || "Movimiento";
+    }
+
+    function historyTypeClass(type){
+      if (type === "USE") return "histUse";
+      if (type === "TRANSFER_OUT") return "histOut";
+      if (type === "TRANSFER_IN") return "histIn";
+      if (type === "TRANSFER_APPROVED") return "histApproved";
+      if (type === "TRANSFER_REJECTED") return "histReject";
+      return "";
+    }
+
+    function renderHome() {
+      els.hdrTitle.textContent = "Recursos";
+      els.hdrSub.textContent = `Ruta ${state.ruta || "—"}`;
+      els.lblRuta.textContent = state.ruta || "—";
+      els.lblPeso.textContent = `PESO ${state.peso ?? "—"}%`;
+      els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
+
+      els.btnHistory.style.display = "inline-flex";
+      els.btnBell.style.display = "inline-flex";
+      els.btnLogout.style.display = "inline-flex";
+
+      const plans = Object.keys(state.saldo || {}).sort();
+      els.plansList.innerHTML = "";
+
+      if (!plans.length) {
+        els.plansList.innerHTML = `<div class="help">No se encontraron planes en el saldo. Revisa los headers en Google Sheets.</div>`;
+        return;
+      }
+
+      plans.forEach((plan) => {
+        const bal = Number(state.saldo[plan] || 0);
+        const balInfo = state.saldoEstado?.[plan] || {
+          valor: bal,
+          negativo: bal < 0,
+          color: bal < 0 ? "red" : "normal"
+        };
+        const negativeClass = balInfo.negativo ? "negative" : "";
+        const negInfoHtml = balInfo.negativo
+          ? `<div class="negInfo">Sobregiro: ${Math.abs(bal)} u</div>`
+          : "";
+
+        const div = document.createElement("div");
+        div.className = "plan";
+        div.setAttribute("data-plan-card", plan);
+        div.innerHTML = `
+          <div class="planTop">
+            <div>
+              <div class="planName">${escapeHtml(plan)}</div>
+              <div class="muted" style="font-size:12px; margin-top:4px;">Disponible</div>
+              ${negInfoHtml}
+            </div>
+            <div class="planBal ${negativeClass}">${bal}<small>u</small></div>
+          </div>
+          <div class="planActions">
+            <button class="mini" data-act="use" data-plan="${escapeAttr(plan)}">Agregar uso</button>
+            <button class="mini primary" data-act="transfer" data-plan="${escapeAttr(plan)}">Transferir</button>
+          </div>
+        `;
+        els.plansList.appendChild(div);
+      });
+
+      setBadge((state.pendientes || []).length);
+    }
+
+    async function login(ruta) {
+      const r = String(ruta || "").trim();
+      if (!r) return showToast("Escribe la ruta");
+
+      const cached = loadCache(r);
+      if (cached && cached.saldo) {
+        state.ruta = String(cached.ruta || r);
+        state.peso = (cached.peso ?? null);
+        state.saldo = (cached.saldo || {});
+        state.saldoEstado = (cached.saldoEstado || {});
+        if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
+        state.pendientes = (cached.pendientes || []);
+        state.history = (cached.history || []);
+        state.pendingSaldoWrites = {};
+        state.lastUpdated = cached.lastUpdated ? new Date(cached.lastUpdated) : new Date();
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Cargando datos…", FAST_TOAST_MS);
+      } else {
+        state.ruta = r;
+        state.saldo = {};
+        state.saldoEstado = {};
+        state.pendientes = [];
+        state.history = [];
+        state.pendingSaldoWrites = {};
+        state.lastUpdated = new Date();
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Conectando…", FAST_TOAST_MS);
+      }
+
+      try {
+        const data = await apiCallDedup(`login:${r}`, { action:"login", ruta:r });
+        state.ruta = String(data.ruta || r);
+        state.peso = (data.peso ?? null);
+        mergeServerSaldo(data.saldo || {});
+        state.saldoEstado = (data.saldo_estado || {});
+        if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
+        state.pendientes = (data.pendientes || []);
+        state.history = (data.history || []);
+        state.lastUpdated = new Date();
+
+        localStorage.setItem("ruta_id", state.ruta);
+        saveCacheNow();
+        setScreen("home");
+        renderHome();
+        startPolling();
+        showToast("Listo", FAST_TOAST_MS);
+      } catch(e) {
+        console.error("LOGIN ERROR:", e);
+        if (cached) {
+          showToast(e.message || "Error al actualizar. Mostrando últimos datos.", 3000);
+          return;
+        }
+        throw e;
+      }
+    }
+
+    async function refreshSaldoFull() {
+      if (!state.ruta) return;
+
+      const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
+      state.peso = (data.peso ?? state.peso);
+      mergeServerSaldo(data.saldo || state.saldo || {});
+      state.saldoEstado = (data.saldo_estado || {});
+      if (!Object.keys(state.saldoEstado).length) rebuildSaldoEstadoFromSaldo();
+      state.pendientes = (data.pendientes || []);
+      state.history = (data.history || state.history || []);
+      state.lastUpdated = new Date();
+      renderHome();
+      saveCache();
+    }
+
+    async function refreshNotificationsOnly() {
+      if (!state.ruta) return;
+      const data = await apiCallDedup(`notif:${state.ruta}`, { action:"notifications", ruta: state.ruta });
+      state.pendientes = data.pendientes || [];
+      setBadge(state.pendientes.length);
+      saveCache();
+    }
+
+    async function refreshHistory() {
+      if (!state.ruta) return;
+      const data = await apiCallDedup(`history:${state.ruta}`, { action:"history", ruta: state.ruta });
+      state.history = (data.history || []);
+      saveCache();
+    }
+
+    function startPolling() {
+      stopPolling();
+      state.pollTimer = setInterval(async () => {
+        try {
+          if (!state.ruta) return;
+          await refreshNotificationsOnly();
+        } catch (e) {
+          console.error("POLL ERROR:", e);
+        }
+      }, POLL_MS);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopPolling();
+      else if (state.ruta) startPolling();
+    });
+
+    function stopPolling() {
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+
+    function logout() {
+      stopPolling();
+      state.ruta = null;
+      state.peso = null;
+      state.saldo = {};
+      state.saldoEstado = {};
+      state.pendientes = [];
+      state.history = [];
+      state.pendingSaldoWrites = {};
+      state.lastUpdated = null;
+      localStorage.removeItem("ruta_id");
+
+      els.btnHistory.style.display = "none";
+      els.btnBell.style.display = "none";
+      els.btnLogout.style.display = "none";
+      setBadge(0);
+      setScreen("login");
+      showToast("Sesión cerrada");
+    }
+
+    function openUseModal(plan) {
+  openModal("Agregar uso", `
+    <div class="help">Esto rebaja el saldo del plan <span class="pill">${escapeHtml(plan)}</span> para la ruta <span class="pill">${escapeHtml(state.ruta)}</span>.</div>
+    <input class="input" id="useQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad (ej: 10)" />
+    <button class="btn" id="useSend">Guardar uso</button>
+    <button class="btn secondary" id="useCancel">Cancelar</button>
+  `);
+
+  $("useCancel").onclick = closeModal;
+  $("useSend").onclick = async () => {
+    const raw = String(($('useQty').value || "")).trim();
+    if (!/^\d+$/.test(raw)) return showToast("Cantidad inválida");
+    const qty = Number(raw);
+    if (!qty || qty <= 0) return showToast("Cantidad inválida");
+
+    const current = Number(state.saldo?.[plan] || 0);
+    const optimistic = current - qty;
+
+    closeModal();
+
+    // Actualiza visualmente al instante
+    setPlanBalance(plan, optimistic, { markPending: true });
+    showToast("Guardando…", FAST_TOAST_MS);
+
+    try {
+      const res = await apiCall({ action:"use", ruta: state.ruta, plan, cantidad: qty });
+
+      // Si el servidor devuelve saldo final, lo ajustamos
+      if (typeof res.after !== "undefined") {
+        setPlanBalance(plan, Number(res.after), { markPending: true });
+      }
+
+      await refreshSaldoFull().catch(() => {});
+      await refreshHistory().catch(() => {});
+      showToast("Uso registrado", 2200);
+    } catch (e) {
+      console.error("USE ERROR:", e);
+
+      // Revertir si falla
+      setPlanBalance(plan, current, { markPending: false });
+
+      showToast(e.message || "Error al guardar", 2600);
+    }
+  };
 }
+
+    function openTransferModal(defaultPlan=null) {
+      const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
+        const bal = Number(state.saldo[p] ?? 0);
+        const label = `${p} — ${bal} u disponibles`;
+        const sel = (p === defaultPlan) ? "selected" : "";
+        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(label)}</option>`;
+      }).join("");
+
+      openModal("Transferir", `
+        <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta.</div>
+        <div class="grid2">
+          <input class="input" id="trPara" inputmode="numeric" pattern="[0-9]*" placeholder="Ruta destino (ej: 17030)" />
+          <input class="input" id="trQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad" />
+        </div>
+        <select class="input" id="trPlan">${planOptions}</select>
+        <button class="btn" id="trSend">Enviar transferencia</button>
+        <button class="btn secondary" id="trCancel">Cancelar</button>
+      `);
+
+      $("trCancel").onclick = closeModal;
+      $("trSend").onclick = async () => {
+        const para = String(($('trPara').value || "")).trim();
+        const plan = $('trPlan').value;
+        const rawQty = String(($('trQty').value || "")).trim();
+
+        if (!para) return showToast("Falta ruta destino");
+        if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
+        if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
+
+        const qty = Number(rawQty);
+        const current = Number(state.saldo?.[plan] || 0);
+
+        if (!qty || qty <= 0) return showToast("Cantidad inválida");
+        if (qty > current) return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
+
+        closeModal();
+        showToast("Enviando…", FAST_TOAST_MS);
+
+        try {
+          await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
+          setPlanBalance(plan, current - qty, { markPending: true });
+          await refreshSaldoFull().catch(() => {});
+          await refreshHistory().catch(() => {});
+          await refreshNotificationsOnly().catch(() => {});
+          showToast("Transferencia enviada", 2200);
+        } catch (e) {
+          console.error("TRANSFER CREATE ERROR:", e);
+          showToast(e.message || "Error", 2600);
+        }
+      };
+    }
+
+    function openNotificationsModal() {
+      const pend = state.pendientes || [];
+      if (!pend.length) {
+        openModal("Notificaciones", `<div class="help">No tienes transferencias pendientes.</div><button class="btn secondary" id="nClose">Cerrar</button>`);
+        $('nClose').onclick = closeModal;
+        return;
+      }
+
+      const list = pend.map(t => `
+        <div class="item">
+          <div class="itemTop">
+            <div>
+              <div class="itemMeta">ID ${escapeHtml(t.id)} • ${escapeHtml(fmtTime(t.fecha))}</div>
+              <div class="muted" style="font-size:12px; margin-top:4px;">
+                De <span class="pill">${escapeHtml(t.de || t.from || "—")}</span> → Para <span class="pill">${escapeHtml(t.para || t.to || state.ruta)}</span>
+              </div>
+              <div class="muted" style="font-size:12px; margin-top:6px;">
+                Plan <span class="pill">${escapeHtml(t.plan)}</span>
+              </div>
+            </div>
+            <div class="itemAmt">${Number(t.cantidad ?? t.monto ?? 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
+          </div>
+
+          <div class="itemBtns">
+            <button class="ghost ok" data-dec="APROBAR" data-id="${escapeAttr(t.id)}">Aceptar</button>
+            <button class="ghost danger" data-dec="RECHAZAR" data-id="${escapeAttr(t.id)}">Rechazar</button>
+          </div>
+        </div>
+      `).join("");
+
+      openModal("Notificaciones", `
+        <div class="help">Tienes <strong>${pend.length}</strong> transferencia(s) pendientes.</div>
+        <div class="list">${list}</div>
+        <button class="btn secondary" id="nClose">Cerrar</button>
+      `);
+
+      $('nClose').onclick = closeModal;
+
+      els.modalBody.querySelectorAll("[data-dec]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-id");
+          const dec = btn.getAttribute("data-dec");
+          try{
+            showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
+            await apiCall({ action:"transfer_respond", id, decision: dec });
+            await refreshSaldoFull().catch(() => {});
+            await refreshHistory().catch(() => {});
+            await refreshNotificationsOnly().catch(() => {});
+            closeModal();
+            openNotificationsModal();
+            showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
+          } catch(e){
+            console.error("TRANSFER RESPOND ERROR:", e);
+            showToast(e.message || "Error");
+          }
+        });
+      });
+    }
+
+    async function openHistoryModal() {
+      showToast("Cargando historial…", FAST_TOAST_MS);
+      await refreshHistory().catch(() => {});
+
+      const items = (state.history || []).slice().sort((a,b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+      if (!items.length) {
+        openModal("Historial 24 horas", `
+          <div class="help">Aquí verás tus movimientos más recientes de las últimas 24 horas.</div>
+          <div class="help">No hay movimientos recientes.</div>
+          <button class="btn secondary" id="hClose">Cerrar</button>
+        `);
+        $('hClose').onclick = closeModal;
+        return;
+      }
+
+      const html = items.map(m => {
+        const type = historyTypeLabel(m.tipo);
+        const cls = historyTypeClass(m.tipo);
+        const metaDe = m.de ? `<div class="muted" style="font-size:12px; margin-top:6px;">De <span class="pill">${escapeHtml(m.de)}</span></div>` : "";
+        const metaPara = m.para ? `<div class="muted" style="font-size:12px; margin-top:6px;">Para <span class="pill">${escapeHtml(m.para)}</span></div>` : "";
+
+        return `
+          <div class="item ${cls}">
+            <div class="itemTop">
+              <div>
+                <div class="itemMeta">${escapeHtml(fmtTime(m.fecha))}</div>
+                <div style="font-size:14px; font-weight:900; margin-top:4px;">${escapeHtml(type)}</div>
+                <div class="muted" style="font-size:12px; margin-top:6px;">
+                  Plan <span class="pill">${escapeHtml(m.plan || "—")}</span>
+                </div>
+                ${metaDe}
+                ${metaPara}
+              </div>
+              <div class="itemAmt">${Number(m.cantidad ?? m.monto ?? 0)} <span class="muted" style="font-size:12px; font-weight:800;">u</span></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      openModal("Historial 24 horas", `
+        <div class="help">Este resumen muestra únicamente los movimientos visibles de las últimas 24 horas.</div>
+        <div class="list">${html}</div>
+        <button class="btn secondary" id="hClose">Cerrar</button>
+      `);
+
+      $('hClose').onclick = closeModal;
+    }
+
+    els.btnEntrar.addEventListener("click", async () => {
+      try{ await login(els.inpRuta.value); }
+      catch(e){ showToast(e.message || "Error"); }
+    });
+
+    els.btnRefresh.addEventListener("click", async () => {
+      try{
+        showToast("Actualizando...");
+        await refreshSaldoFull();
+        showToast("Actualizado");
+      } catch(e){
+        console.error("REFRESH ERROR:", e);
+        showToast(e.message || "Error");
+      }
+    });
+
+    els.btnLogout.addEventListener("click", logout);
+    els.btnHistory.addEventListener("click", () => openHistoryModal());
+    els.btnBell.addEventListener("click", openNotificationsModal);
+
+    els.plansList.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const act = btn.getAttribute("data-act");
+      const plan = btn.getAttribute("data-plan");
+      if (!act || !plan) return;
+      if (act === "use") openUseModal(plan);
+      if (act === "transfer") openTransferModal(plan);
+    });
+
+    els.modalClose.addEventListener("click", closeModal);
+    els.modalBack.addEventListener("click", (e) => { if (e.target === els.modalBack) closeModal(); });
+    els.inpRuta.addEventListener("keydown", (e) => { if (e.key === "Enter") els.btnEntrar.click(); });
+
+    (function boot(){
+      const savedRuta = localStorage.getItem("ruta_id");
+      if (savedRuta) {
+        els.inpRuta.value = savedRuta;
+        login(savedRuta).catch(() => logout());
+      } else {
+        els.btnHistory.style.display = "none";
+        els.btnBell.style.display = "none";
+        els.btnLogout.style.display = "none";
+      }
+    })();
+  </script>
+</body>
+</html>
