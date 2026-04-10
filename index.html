@@ -187,7 +187,7 @@
       color: rgba(11,18,32,.88);
     }
 
-    .row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .pill{
       font-family: var(--mono);
       font-size:12px;
@@ -202,26 +202,63 @@
     .muted{ color: var(--muted); }
 
     .panel{
-      padding: 14px 14px;
+      padding: 12px;
       border-radius: var(--radius);
       border: 1px solid rgba(11,18,32,.08);
       background: rgba(255,255,255,.88);
       display:flex;
       flex-direction:column;
-      gap:10px;
-      margin-bottom: 14px;
+      gap:8px;
+      margin-bottom: 10px;
       box-shadow: var(--shadow2);
     }
 
-    .plans{ display:flex; flex-direction:column; gap:10px; }
+
+    .panel-header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .panel-logo{
+      width:48px;
+      height:48px;
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+
+    .panel-logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+
+    .panel-info{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-width:0;
+    }
+
+    .panel-info .row{
+      align-items:center;
+    }
+
+    .plans{ display:flex; flex-direction:column; gap:8px; }
     .plan{
-      padding: 14px;
+      padding: 12px;
       border-radius: 18px;
       border: 1px solid rgba(11,18,32,.08);
       background: rgba(255,255,255,.94);
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:8px;
       box-shadow: 0 12px 22px rgba(0,0,0,.05);
       transition: transform .12s ease, box-shadow .12s ease;
     }
@@ -229,7 +266,7 @@
       transform: scale(.995);
       box-shadow: 0 10px 18px rgba(0,0,0,.05);
     }
-    .planTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .planTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:2px; }
     .planName{ font-family: var(--mono); font-size:12px; color: rgba(11,18,32,.78); letter-spacing:.2px; }
     .planBal{
       font-size: 27px;
@@ -247,7 +284,7 @@
       color: var(--bad);
     }
 
-    .planActions{ display:flex; gap:10px; }
+    .planActions{ display:flex; gap:8px; }
 
     .mini{
       flex:1;
@@ -339,15 +376,15 @@
     .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .help{ font-size:12px; color:var(--muted); line-height:1.35; }
 
-    .list{ display:flex; flex-direction:column; gap:10px; }
+    .list{ display:flex; flex-direction:column; gap:8px; }
     .item{
-      padding: 12px;
+      padding: 10px;
       border-radius: 18px;
       border: 1px solid rgba(11,18,32,.10);
       background: rgba(255,255,255,.93);
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:6px;
       box-shadow: 0 12px 22px rgba(0,0,0,.05);
     }
     .itemTop{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
@@ -440,16 +477,23 @@
 
       <section class="screen" id="screenHome">
         <div class="panel">
-          <div class="row">
-            <div>
-              <div class="muted" style="font-size:12px;">Ruta</div>
-              <div style="font-size:18px; font-weight:900; letter-spacing:.2px;" id="lblRuta">—</div>
+          <div class="panel-header">
+            <div class="panel-logo">
+              <img src="logo.png" alt="Logo">
             </div>
-            <div class="pill" id="lblPeso">PESO —%</div>
-          </div>
-          <div class="row" style="margin-top:6px;">
-            <div class="muted" style="font-size:12px;">Última actualización</div>
-            <div class="pill" id="lblUpdated">—</div>
+            <div class="panel-info">
+              <div class="row">
+                <div>
+                  <div class="muted" style="font-size:12px;">Ruta</div>
+                  <div style="font-size:18px; font-weight:900; letter-spacing:.2px;" id="lblRuta">—</div>
+                </div>
+                <div class="pill" id="lblPeso">PESO —%</div>
+              </div>
+              <div class="row" style="margin-top:6px;">
+                <div class="muted" style="font-size:12px;">Última actualización</div>
+                <div class="pill" id="lblUpdated">—</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1014,6 +1058,7 @@
         setPlanBalance(plan, Number(res.after), { markPending: true });
       }
 
+      await refreshSaldoFull().catch(() => {});
       await refreshHistory().catch(() => {});
       showToast("Uso registrado", 2200);
     } catch (e) {
@@ -1068,6 +1113,7 @@
         try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
           setPlanBalance(plan, current - qty, { markPending: true });
+          await refreshSaldoFull().catch(() => {});
           await refreshHistory().catch(() => {});
           await refreshNotificationsOnly().catch(() => {});
           showToast("Transferencia enviada", 2200);
@@ -1123,7 +1169,9 @@
           try{
             showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
             await apiCall({ action:"transfer_respond", id, decision: dec });
-            await refreshSaldoFull();
+            await refreshSaldoFull().catch(() => {});
+            await refreshHistory().catch(() => {});
+            await refreshNotificationsOnly().catch(() => {});
             closeModal();
             openNotificationsModal();
             showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
