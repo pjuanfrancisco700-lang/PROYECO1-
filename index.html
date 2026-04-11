@@ -602,6 +602,9 @@
       pendingSaldoWrites: {},
       lastUpdated: null,
       pollTimer: null,
+      loginSeq: 0,
+      refreshSeq: 0,
+      actionLocks: {},
     };
 
     const els = {
@@ -687,6 +690,50 @@
     }
 
     function cacheKey(ruta){ return `cache_${ruta}`; }
+
+    function isActionLocked(key) {
+      return !!state.actionLocks[key];
+    }
+
+    function lockAction(key) {
+      if (state.actionLocks[key]) return false;
+      state.actionLocks[key] = true;
+      return true;
+    }
+
+    function unlockAction(key) {
+      delete state.actionLocks[key];
+    }
+
+    function markPendingPlan(plan, value) {
+      state.pendingSaldoWrites = {
+        ...(state.pendingSaldoWrites || {}),
+        [plan]: { value: Number(value || 0), ts: Date.now() }
+      };
+    }
+
+    function clearPendingPlan(plan, expectedValue = null) {
+      const current = state.pendingSaldoWrites?.[plan];
+      if (!current) return;
+      if (expectedValue !== null && Number(current.value) !== Number(expectedValue)) return;
+      delete state.pendingSaldoWrites[plan];
+    }
+
+    function withButtonBusy(btn, busy, busyText = null) {
+      if (!btn) return;
+      if (busy) {
+        if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.7';
+        if (busyText) btn.textContent = busyText;
+      } else {
+        btn.disabled = false;
+        btn.style.pointerEvents = '';
+        btn.style.opacity = '';
+        if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+      }
+    }
 
     function saveCacheNow(){
       if (!state.ruta) return;
@@ -774,7 +821,7 @@
       els.lblUpdated.textContent = state.lastUpdated ? fmtTime(state.lastUpdated) : "—";
     }
 
-    function setPlanBalance(plan, next, { markPending = false } = {}){
+    function setPlanBalance(plan, next, { markPending = false, clearPending = false } = {}){
       const value = Number(next || 0);
       state.saldo = { ...(state.saldo || {}), [plan]: value };
       state.saldoEstado = {
@@ -787,10 +834,9 @@
       };
 
       if (markPending) {
-        state.pendingSaldoWrites = {
-          ...(state.pendingSaldoWrites || {}),
-          [plan]: { value, ts: Date.now() }
-        };
+        markPendingPlan(plan, value);
+      } else if (clearPending) {
+        clearPendingPlan(plan, value);
       }
 
       state.lastUpdated = new Date();
@@ -804,6 +850,7 @@
 
       Object.entries(state.pendingSaldoWrites || {}).forEach(([plan, info]) => {
         const pendingValue = Number(info?.value || 0);
+        const pendingTs = Number(info?.ts || 0);
         const serverHasPlan = Object.prototype.hasOwnProperty.call(incoming, plan);
         const serverValue = serverHasPlan ? Number(incoming[plan] || 0) : null;
 
@@ -811,7 +858,15 @@
           delete state.pendingSaldoWrites[plan];
           return;
         }
-        incoming[plan] = pendingValue;
+
+        if (pendingTs && (Date.now() - pendingTs) < PENDING_WRITE_HOLD_MS) {
+          incoming[plan] = pendingValue;
+          return;
+        }
+
+        if (!serverHasPlan) {
+          incoming[plan] = pendingValue;
+        }
       });
 
       state.saldo = incoming;
@@ -935,6 +990,7 @@
       const r = String(ruta || "").trim();
       if (!r) return showToast("Escribe la ruta");
 
+      const requestId = ++state.loginSeq;
       const cached = loadCache(r);
       if (cached && cached.saldo) {
         state.ruta = String(cached.ruta || r);
@@ -966,6 +1022,8 @@
 
       try {
         const data = await apiCallDedup(`login:${r}`, { action:"login", ruta:r });
+        if (requestId !== state.loginSeq) return;
+
         state.ruta = String(data.ruta || r);
         state.peso = (data.peso ?? null);
         mergeServerSaldo(data.saldo || {});
@@ -983,6 +1041,7 @@
         showToast("Listo", FAST_TOAST_MS);
       } catch(e) {
         console.error("LOGIN ERROR:", e);
+        if (requestId !== state.loginSeq) return;
         if (cached) {
           showToast(e.message || "Error al actualizar. Mostrando últimos datos.", 3000);
           return;
@@ -994,7 +1053,11 @@
     async function refreshSaldoFull() {
       if (!state.ruta) return;
 
-      const data = await apiCallDedup(`refresh:${state.ruta}`, { action:"login", ruta: state.ruta });
+      const requestId = ++state.refreshSeq;
+      const rutaSnapshot = state.ruta;
+      const data = await apiCallDedup(`refresh:${rutaSnapshot}`, { action:"login", ruta: rutaSnapshot });
+      if (requestId !== state.refreshSeq || rutaSnapshot !== state.ruta) return;
+
       state.peso = (data.peso ?? state.peso);
       mergeServerSaldo(data.saldo || state.saldo || {});
       state.saldoEstado = (data.saldo_estado || {});
@@ -1130,34 +1193,71 @@
       `);
 
       $("trCancel").onclick = closeModal;
-      $("trSend").onclick = async () => {
+      $("trSend").onclick = async (ev) => {
+        const btn = ev.currentTarget;
+        if (!lockAction(`transfer:${plan}`)) return;
+        withButtonBusy(btn, true, "Enviando...");
+
         const para = String(($('trPara').value || "")).trim();
         const rawQty = String(($('trQty').value || "")).trim();
 
-        if (!plan) return showToast("No se pudo identificar el recurso");
-        if (!para) return showToast("Falta ruta destino");
-        if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
-        if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
+        if (!plan) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast("No se pudo identificar el recurso");
+        }
+        if (!para) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast("Falta ruta destino");
+        }
+        if (para === String(state.ruta)) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast("No puedes transferir a la misma ruta");
+        }
+        if (!/^\d+$/.test(rawQty)) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast("Cantidad inválida");
+        }
 
         const qty = Number(rawQty);
         const latestCurrent = Number(state.saldo?.[plan] || current || 0);
 
-        if (!qty || qty <= 0) return showToast("Cantidad inválida");
-        if (qty > latestCurrent) return showToast(`No puedes transferir más de lo disponible. Actual: ${latestCurrent}`, 2600);
+        if (!qty || qty <= 0) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast("Cantidad inválida");
+        }
+        if (qty > latestCurrent) {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
+          return showToast(`No puedes transferir más de lo disponible. Actual: ${latestCurrent}`, 2600);
+        }
 
+        const optimistic = latestCurrent - qty;
+        setPlanBalance(plan, optimistic, { markPending: true });
         closeModal();
         showToast("Enviando…", FAST_TOAST_MS);
 
         try {
-          await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          setPlanBalance(plan, latestCurrent - qty, { markPending: true });
+          const res = await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
+          if (typeof res.after !== "undefined") {
+            setPlanBalance(plan, Number(res.after), { markPending: true });
+          }
           await refreshSaldoFull().catch(() => {});
           await refreshHistory().catch(() => {});
           await refreshNotificationsOnly().catch(() => {});
           showToast("Transferencia enviada", 2200);
         } catch (e) {
           console.error("TRANSFER CREATE ERROR:", e);
+          clearPendingPlan(plan);
+          setPlanBalance(plan, latestCurrent, { clearPending: true });
           showToast(e.message || "Error", 2600);
+        } finally {
+          unlockAction(`transfer:${plan}`);
+          withButtonBusy(btn, false);
         }
       };
     }
@@ -1204,18 +1304,18 @@
         btn.addEventListener("click", async () => {
           const id = btn.getAttribute("data-id");
           const dec = btn.getAttribute("data-dec");
+          const lockKey = `respond:${id}`;
+          if (!lockAction(lockKey)) return;
           try{
             closeModal();
             showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...", FAST_TOAST_MS);
 
             await apiCall({ action: "transfer_respond", id, decision: dec });
 
-            // actualización visual inmediata de pendientes
             state.pendientes = (state.pendientes || []).filter(t => String(t.id) !== String(id));
             setBadge(state.pendientes.length);
             saveCache();
 
-            // refrescos en segundo plano (sin bloquear UI)
             refreshSaldoFull().catch(()=>{});
             refreshHistory().catch(()=>{});
             refreshNotificationsOnly().catch(()=>{});
@@ -1224,6 +1324,8 @@
           } catch(e){
             console.error("TRANSFER RESPOND ERROR:", e);
             showToast(e.message || "Error");
+          } finally {
+            unlockAction(lockKey);
           }
         });
       });
@@ -1279,11 +1381,19 @@
     }
 
     els.btnEntrar.addEventListener("click", async () => {
+      if (!lockAction("login")) return;
+      withButtonBusy(els.btnEntrar, true, "Entrando...");
       try{ await login(els.inpRuta.value); }
       catch(e){ showToast(e.message || "Error"); }
+      finally {
+        unlockAction("login");
+        withButtonBusy(els.btnEntrar, false);
+      }
     });
 
     els.btnRefresh.addEventListener("click", async () => {
+      if (!lockAction("refresh")) return;
+      withButtonBusy(els.btnRefresh, true);
       try{
         showToast("Actualizando...");
         await refreshSaldoFull();
@@ -1291,6 +1401,9 @@
       } catch(e){
         console.error("REFRESH ERROR:", e);
         showToast(e.message || "Error");
+      } finally {
+        unlockAction("refresh");
+        withButtonBusy(els.btnRefresh, false);
       }
     });
 
