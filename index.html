@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#f6f7fb" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="color-scheme" content="light" />
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
   <link rel="apple-touch-icon" href="icon-192-v2.png">
@@ -44,6 +45,10 @@
 
     *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
     html,body{ height:100%; }
+    html{
+      color-scheme: light;
+    }
+
     body{
       margin:0;
       font-family:var(--sys);
@@ -451,6 +456,13 @@
       background: rgba(0,120,212,.08);
     }
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
+
+    @media (prefers-color-scheme: dark) {
+      html, body {
+        background: #f2f2f7 !important;
+        color: #0b1220 !important;
+      }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       *{ scroll-behavior:auto !important; }
