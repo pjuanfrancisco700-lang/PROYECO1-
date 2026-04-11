@@ -376,6 +376,43 @@
     .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .help{ font-size:12px; color:var(--muted); line-height:1.35; }
 
+    .transferInfo{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(11,18,32,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,249,253,.94));
+      box-shadow: 0 12px 22px rgba(0,0,0,.05);
+    }
+    .transferLabel{
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      color: rgba(11,18,32,.48);
+    }
+    .transferValue{
+      font-family: var(--mono);
+      font-size:16px;
+      font-weight:900;
+      color: rgba(11,18,32,.88);
+      line-height:1.2;
+      word-break: break-word;
+    }
+    .transferFields{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .transferActions{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top: 2px;
+    }
+
     .list{ display:flex; flex-direction:column; gap:8px; }
     .item{
       padding: 10px;
@@ -1073,46 +1110,47 @@
 }
 
     function openTransferModal(defaultPlan=null) {
-      const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
-        const bal = Number(state.saldo[p] ?? 0);
-        const label = `${p} — ${bal} u disponibles`;
-        const sel = (p === defaultPlan) ? "selected" : "";
-        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(label)}</option>`;
-      }).join("");
+      const plan = String(defaultPlan || "").trim();
+      const current = Number(state.saldo?.[plan] || 0);
 
       openModal("Transferir", `
         <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta.</div>
-        <div class="grid2">
+        <div class="transferInfo">
+          <div class="transferLabel">Recurso</div>
+          <div class="transferValue">${escapeHtml(plan || "—")}</div>
+        </div>
+        <div class="transferFields">
           <input class="input" id="trPara" inputmode="numeric" pattern="[0-9]*" placeholder="Ruta destino (ej: 17030)" />
           <input class="input" id="trQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad" />
         </div>
-        <select class="input" id="trPlan">${planOptions}</select>
-        <button class="btn" id="trSend">Enviar transferencia</button>
-        <button class="btn secondary" id="trCancel">Cancelar</button>
+        <div class="transferActions">
+          <button class="btn" id="trSend">Enviar transferencia</button>
+          <button class="btn secondary" id="trCancel">Cancelar</button>
+        </div>
       `);
 
       $("trCancel").onclick = closeModal;
       $("trSend").onclick = async () => {
         const para = String(($('trPara').value || "")).trim();
-        const plan = $('trPlan').value;
         const rawQty = String(($('trQty').value || "")).trim();
 
+        if (!plan) return showToast("No se pudo identificar el recurso");
         if (!para) return showToast("Falta ruta destino");
         if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
         if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
 
         const qty = Number(rawQty);
-        const current = Number(state.saldo?.[plan] || 0);
+        const latestCurrent = Number(state.saldo?.[plan] || current || 0);
 
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
-        if (qty > current) return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
+        if (qty > latestCurrent) return showToast(`No puedes transferir más de lo disponible. Actual: ${latestCurrent}`, 2600);
 
         closeModal();
         showToast("Enviando…", FAST_TOAST_MS);
 
         try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          setPlanBalance(plan, current - qty, { markPending: true });
+          setPlanBalance(plan, latestCurrent - qty, { markPending: true });
           await refreshSaldoFull().catch(() => {});
           await refreshHistory().catch(() => {});
           await refreshNotificationsOnly().catch(() => {});
