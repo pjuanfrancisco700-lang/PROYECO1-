@@ -7,7 +7,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#f6f7fb" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="only light" />
+  <meta name="supported-color-schemes" content="light" />
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
   <link rel="apple-touch-icon" href="icon-192-v2.png">
@@ -434,6 +435,105 @@
 
       * {
         color-scheme: light !important;
+      }
+    }
+
+
+
+    input, textarea, select, button {
+      color-scheme: only light;
+      -webkit-text-fill-color: currentColor;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root, html, body {
+        color-scheme: only light !important;
+        background-color: #f2f2f7 !important;
+        color: #0b1220 !important;
+      }
+
+      body{
+        background:
+          radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
+          radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
+          linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6) !important;
+        -webkit-text-fill-color: #0b1220;
+      }
+
+      header{
+        background: rgba(242,242,247,.78) !important;
+        border-bottom-color: rgba(11,18,32,.10) !important;
+      }
+
+      .card,
+      .panel,
+      .plan,
+      .modal,
+      .item,
+      .toast,
+      .iconbtn,
+      .pill,
+      .input,
+      .mini,
+      .ghost,
+      .btn.secondary {
+        color-scheme: only light !important;
+      }
+
+      .card,
+      .panel,
+      .plan,
+      .modal,
+      .item,
+      .toast,
+      .input,
+      .mini,
+      .ghost,
+      .btn.secondary,
+      .pill,
+      .iconbtn {
+        background-color: #ffffff !important;
+        color: #0b1220 !important;
+        border-color: rgba(11,18,32,.10) !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      .panel,
+      .plan,
+      .item,
+      .card,
+      .modal,
+      .toast {
+        box-shadow: 0 16px 34px rgba(0, 0, 0, .08) !important;
+      }
+
+      .muted,
+      .title .sub,
+      .hero p,
+      .help,
+      .microFooter,
+      .planName,
+      .itemMeta,
+      .input::placeholder {
+        color: rgba(11,18,32,.58) !important;
+        -webkit-text-fill-color: rgba(11,18,32,.58) !important;
+      }
+
+      .btn,
+      .mini.primary {
+        background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94)) !important;
+        color: #ffffff !important;
+        border-color: rgba(58,160,255,.20) !important;
+        -webkit-text-fill-color: #ffffff !important;
+      }
+
+      svg,
+      path {
+        forced-color-adjust: none;
+      }
+
+      * {
+        color-scheme: only light !important;
       }
     }
 
