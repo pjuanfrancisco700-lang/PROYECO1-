@@ -6,8 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#f6f7fb" />
-  <meta name="color-scheme" content="light" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="color-scheme" content="light" />
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
   <link rel="apple-touch-icon" href="icon-192-v2.png">
@@ -44,29 +44,25 @@
     }
 
     *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html{
+      height:100%;
+      color-scheme: light;
+    }
+    body{ min-height:100%; }
     html,body{ height:100%; }
 
-    html{
-      color-scheme: only light;
-      background: #f2f2f7 !important;
+    input, textarea, select, button{
+      color-scheme: light;
     }
     body{
       margin:0;
       font-family:var(--sys);
-      color-scheme: only light;
       color:var(--text);
       background:
         radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
         radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
-        linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6) !important;
+        linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6);
       overflow-x:hidden;
-    }
-
-    input,
-    textarea,
-    select,
-    button{
-      color-scheme: only light;
     }
 
     .safe-top{ padding-top: env(safe-area-inset-top); }
@@ -315,11 +311,11 @@
     .mini:active{ transform: translateY(1px) scale(.99); filter: brightness(.985); }
 
     .mini.primary{
-  background: linear-gradient(180deg, #4cc2ff, #0a84ff);
-  border: 1px solid rgba(10,132,255,.25);
-  color: #ffffff;
-  box-shadow: 0 14px 24px rgba(10,132,255,.18);
-}
+      background: linear-gradient(180deg, rgba(58,160,255,1), rgba(10,132,255,.94));
+      border: 1px solid rgba(58,160,255,.20);
+      color:#fff;
+      box-shadow: 0 16px 26px rgba(58,160,255,.16);
+    }
 
     .microFooter{
       margin-top: 14px;
@@ -429,72 +425,15 @@
     }
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
+
     @media (prefers-color-scheme: dark) {
-      html{
-        color-scheme: only light;
+      html, body {
         background: #f2f2f7 !important;
-      }
-
-      body,
-      .app,
-      header,
-      .card,
-      .panel,
-      .plan,
-      .modal,
-      .modalBack,
-      .input,
-      .btn.secondary,
-      .mini,
-      .ghost,
-      .pill,
-      .toast {
-        color-scheme: only light !important;
-      }
-
-      body{
-        background:
-          radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
-          radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
-          linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6) !important;
         color: #0b1220 !important;
       }
 
-      header{
-        background: rgba(242,242,247,.78) !important;
-        border-bottom: 1px solid rgba(11,18,32,.10) !important;
-      }
-
-      .card,
-      .panel,
-      .plan,
-      .modal,
-      .toast,
-      .input,
-      .mini,
-      .ghost,
-      .pill,
-      .btn.secondary{
-        background-color: rgba(255,255,255,.93) !important;
-        color: #0b1220 !important;
-        border-color: rgba(11,18,32,.10) !important;
-      }
-
-      .muted,
-      .title .sub,
-      .help,
-      .planName,
-      .itemMeta,
-      .microFooter{
-        color: rgba(11,18,32,.58) !important;
-      }
-
-      .iconbtn svg,
-      .ghost,
-      .mini,
-      .pill,
-      .input{
-        filter: none !important;
+      * {
+        color-scheme: light !important;
       }
     }
 
