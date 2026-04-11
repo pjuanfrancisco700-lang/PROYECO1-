@@ -6,8 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#f6f7fb" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="color-scheme" content="light" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
   <link rel="apple-touch-icon" href="icon-192-v2.png">
@@ -45,19 +45,28 @@
 
     *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
     html,body{ height:100%; }
-    html{
-      color-scheme: light;
-    }
 
+    html{
+      color-scheme: only light;
+      background: #f2f2f7 !important;
+    }
     body{
       margin:0;
       font-family:var(--sys);
+      color-scheme: only light;
       color:var(--text);
       background:
         radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
         radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
-        linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6);
+        linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6) !important;
       overflow-x:hidden;
+    }
+
+    input,
+    textarea,
+    select,
+    button{
+      color-scheme: only light;
     }
 
     .safe-top{ padding-top: env(safe-area-inset-top); }
@@ -381,43 +390,6 @@
     .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .help{ font-size:12px; color:var(--muted); line-height:1.35; }
 
-    .transferInfo{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      padding: 12px 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(11,18,32,.08);
-      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,249,253,.94));
-      box-shadow: 0 12px 22px rgba(0,0,0,.05);
-    }
-    .transferLabel{
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:.5px;
-      text-transform:uppercase;
-      color: rgba(11,18,32,.48);
-    }
-    .transferValue{
-      font-family: var(--mono);
-      font-size:16px;
-      font-weight:900;
-      color: rgba(11,18,32,.88);
-      line-height:1.2;
-      word-break: break-word;
-    }
-    .transferFields{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .transferActions{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-top: 2px;
-    }
-
     .list{ display:flex; flex-direction:column; gap:8px; }
     .item{
       padding: 10px;
@@ -458,9 +430,71 @@
     .histReject{ border-color: rgba(255,59,48,.22); background: rgba(255,59,48,.08); }
 
     @media (prefers-color-scheme: dark) {
-      html, body {
+      html{
+        color-scheme: only light;
         background: #f2f2f7 !important;
+      }
+
+      body,
+      .app,
+      header,
+      .card,
+      .panel,
+      .plan,
+      .modal,
+      .modalBack,
+      .input,
+      .btn.secondary,
+      .mini,
+      .ghost,
+      .pill,
+      .toast {
+        color-scheme: only light !important;
+      }
+
+      body{
+        background:
+          radial-gradient(800px 520px at 15% -10%, rgba(10,132,255,.14), transparent 60%),
+          radial-gradient(720px 520px at 100% 0%, rgba(43,136,216,.12), transparent 58%),
+          linear-gradient(#f7f8fb, #f2f2f7 60%, #eef0f6) !important;
         color: #0b1220 !important;
+      }
+
+      header{
+        background: rgba(242,242,247,.78) !important;
+        border-bottom: 1px solid rgba(11,18,32,.10) !important;
+      }
+
+      .card,
+      .panel,
+      .plan,
+      .modal,
+      .toast,
+      .input,
+      .mini,
+      .ghost,
+      .pill,
+      .btn.secondary{
+        background-color: rgba(255,255,255,.93) !important;
+        color: #0b1220 !important;
+        border-color: rgba(11,18,32,.10) !important;
+      }
+
+      .muted,
+      .title .sub,
+      .help,
+      .planName,
+      .itemMeta,
+      .microFooter{
+        color: rgba(11,18,32,.58) !important;
+      }
+
+      .iconbtn svg,
+      .ghost,
+      .mini,
+      .pill,
+      .input{
+        filter: none !important;
       }
     }
 
@@ -1122,47 +1156,46 @@
 }
 
     function openTransferModal(defaultPlan=null) {
-      const plan = String(defaultPlan || "").trim();
-      const current = Number(state.saldo?.[plan] || 0);
+      const planOptions = Object.keys(state.saldo || {}).sort().map(p => {
+        const bal = Number(state.saldo[p] ?? 0);
+        const label = `${p} — ${bal} u disponibles`;
+        const sel = (p === defaultPlan) ? "selected" : "";
+        return `<option ${sel} value="${escapeAttr(p)}">${escapeHtml(label)}</option>`;
+      }).join("");
 
       openModal("Transferir", `
         <div class="help">Transfiere recurso desde <span class="pill">${escapeHtml(state.ruta)}</span> hacia otra ruta.</div>
-        <div class="transferInfo">
-          <div class="transferLabel">Recurso</div>
-          <div class="transferValue">${escapeHtml(plan || "—")}</div>
-        </div>
-        <div class="transferFields">
+        <div class="grid2">
           <input class="input" id="trPara" inputmode="numeric" pattern="[0-9]*" placeholder="Ruta destino (ej: 17030)" />
           <input class="input" id="trQty" inputmode="numeric" pattern="[0-9]*" placeholder="Cantidad" />
         </div>
-        <div class="transferActions">
-          <button class="btn" id="trSend">Enviar transferencia</button>
-          <button class="btn secondary" id="trCancel">Cancelar</button>
-        </div>
+        <select class="input" id="trPlan">${planOptions}</select>
+        <button class="btn" id="trSend">Enviar transferencia</button>
+        <button class="btn secondary" id="trCancel">Cancelar</button>
       `);
 
       $("trCancel").onclick = closeModal;
       $("trSend").onclick = async () => {
         const para = String(($('trPara').value || "")).trim();
+        const plan = $('trPlan').value;
         const rawQty = String(($('trQty').value || "")).trim();
 
-        if (!plan) return showToast("No se pudo identificar el recurso");
         if (!para) return showToast("Falta ruta destino");
         if (para === String(state.ruta)) return showToast("No puedes transferir a la misma ruta");
         if (!/^\d+$/.test(rawQty)) return showToast("Cantidad inválida");
 
         const qty = Number(rawQty);
-        const latestCurrent = Number(state.saldo?.[plan] || current || 0);
+        const current = Number(state.saldo?.[plan] || 0);
 
         if (!qty || qty <= 0) return showToast("Cantidad inválida");
-        if (qty > latestCurrent) return showToast(`No puedes transferir más de lo disponible. Actual: ${latestCurrent}`, 2600);
+        if (qty > current) return showToast(`No puedes transferir más de lo disponible. Actual: ${current}`, 2600);
 
         closeModal();
         showToast("Enviando…", FAST_TOAST_MS);
 
         try {
           await apiCall({ action:"transfer_create", de: state.ruta, para, plan, cantidad: qty });
-          setPlanBalance(plan, latestCurrent - qty, { markPending: true });
+          setPlanBalance(plan, current - qty, { markPending: true });
           await refreshSaldoFull().catch(() => {});
           await refreshHistory().catch(() => {});
           await refreshNotificationsOnly().catch(() => {});
