@@ -119,7 +119,7 @@
       display:none;
     }
 
-    main{ padding: 16px var(--pad) 24px; flex:1; }
+    main{ padding: 12px var(--pad) 18px; flex:1; }
 
     .card{
       background: rgba(255,255,255,.93);
@@ -209,7 +209,7 @@
       display:flex;
       flex-direction:column;
       gap:8px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       box-shadow: var(--shadow2);
     }
 
@@ -250,7 +250,7 @@
       align-items:center;
     }
 
-    .plans{ display:flex; flex-direction:column; gap:8px; }
+    .plans{ display:flex; flex-direction:column; gap:6px; }
     .plan{
       padding: 12px;
       border-radius: 18px;
@@ -308,7 +308,7 @@
     }
 
     .microFooter{
-      margin-top: 18px;
+      margin-top: 14px;
       padding: 4px 10px 0;
       text-align: center;
       font-size: 10px;
@@ -1167,14 +1167,22 @@
           const id = btn.getAttribute("data-id");
           const dec = btn.getAttribute("data-dec");
           try{
-            showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...");
-            await apiCall({ action:"transfer_respond", id, decision: dec });
-            await refreshSaldoFull().catch(() => {});
-            await refreshHistory().catch(() => {});
-            await refreshNotificationsOnly().catch(() => {});
             closeModal();
-            openNotificationsModal();
-            showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada");
+            showToast(dec === "APROBAR" ? "Aceptando..." : "Rechazando...", FAST_TOAST_MS);
+
+            await apiCall({ action: "transfer_respond", id, decision: dec });
+
+            // actualización visual inmediata de pendientes
+            state.pendientes = (state.pendientes || []).filter(t => String(t.id) !== String(id));
+            setBadge(state.pendientes.length);
+            saveCache();
+
+            // refrescos en segundo plano (sin bloquear UI)
+            refreshSaldoFull().catch(()=>{});
+            refreshHistory().catch(()=>{});
+            refreshNotificationsOnly().catch(()=>{});
+
+            showToast(dec === "APROBAR" ? "Aceptada" : "Rechazada", 2200);
           } catch(e){
             console.error("TRANSFER RESPOND ERROR:", e);
             showToast(e.message || "Error");
